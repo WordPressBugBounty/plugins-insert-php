@@ -1,6 +1,6 @@
 <?php
 /**
- * A base shortcode for all lockers
+ * A base shortcode for all snippets
  *
  * @since 1.0.0
  */
@@ -10,31 +10,92 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-class WINP_SnippetShortcode extends Wbcr_FactoryShortcodes335_Shortcode {
+/**
+ * Base shortcode class for all snippet shortcodes
+ */
+class WINP_SnippetShortcode {
 
-	public $manager;
+	/**
+	 * Plugin instance
+	 *
+	 * @var WINP_Plugin
+	 */
+	public $plugin;
 
+	/**
+	 * Shortcode name(s)
+	 *
+	 * @var string|array<string>
+	 */
 	public $shortcode_name = 'wbcr_php_snippet';
 
 	/**
-	 * Includes assets
+	 * Includes assets in header
+	 *
 	 * @var bool
 	 */
 	public $assets_in_header = true;
 
+	/**
+	 * Constructor
+	 *
+	 * @param WINP_Plugin $plugin Plugin instance.
+	 */
 	public function __construct( $plugin ) {
-		parent::__construct( $plugin );
+		$this->plugin = $plugin;
+
+		// Ensure shortcode_name is an array.
+		if ( ! is_array( $this->shortcode_name ) ) {
+			$this->shortcode_name = [ $this->shortcode_name ];
+		}
+
+		// Register shortcode(s) with WordPress.
+		foreach ( $this->shortcode_name as $name ) {
+			if ( ! empty( $name ) ) {
+				add_shortcode( $name, [ $this, 'render' ] );
+			}
+		}
+
+		// Enqueue assets in header if needed.
+		if ( $this->assets_in_header ) {
+			add_action( 'wp_enqueue_scripts', [ $this, 'enqueue_assets' ] );
+		}
+	}
+
+	/**
+	 * Enqueue assets if needed.
+	 *
+	 * @return void
+	 */
+	public function enqueue_assets() {
+		// Override in child classes if needed.
+	}
+
+	/**
+	 * Shortcode render callback.
+	 *
+	 * @param array<string, mixed> $attr    Shortcode attributes.
+	 * @param string|null          $content Shortcode content.
+	 * @param string               $tag     Shortcode tag.
+	 *
+	 * @return string
+	 */
+	public function render( $attr, $content, $tag ) {
+		ob_start();
+		$this->html( $attr, $content ?? '', $tag );
+		$html = ob_get_clean();
+		return false !== $html ? $html : '';
 	}
 
 	/**
 	 * Filter attributes
 	 *
-	 * @param $attr
-	 * @param $post_id
+	 * @param array<string, mixed> $attr    Shortcode attributes.
+	 * @param int                  $post_id Post ID.
 	 *
-	 * @return mixed
+	 * @return array<string, mixed>
 	 */
-	public function filterAttributes( $attr, $post_id ) {
+	public function filter_attributes( $attr, $post_id ) {
 		if ( ! empty( $attr ) ) {
 			$available_tags = WINP_Helper::getMetaOption( $post_id, 'snippet_tags', null );
 
@@ -44,7 +105,7 @@ class WINP_SnippetShortcode extends Wbcr_FactoryShortcodes335_Shortcode {
 			}
 
 			foreach ( $attr as $name => $value ) {
-				$is_allow_attr = in_array( $name, array( 'id', 'title' ) );
+				$is_allow_attr = in_array( $name, [ 'id', 'title' ] );
 				$validate_name = preg_match( '/^[a-zA-Z_\x7f-\xff][a-zA-Z0-9_\x7f-\xff]*/', $name );
 
 				if ( ! $is_allow_attr && ( ( ! empty( $available_tags ) && ! in_array( $name, $available_tags ) ) || ! $validate_name ) ) {
@@ -83,16 +144,26 @@ class WINP_SnippetShortcode extends Wbcr_FactoryShortcodes335_Shortcode {
 	/**
 	 * Get snippet id
 	 *
-	 * @param $attr
-	 * @param $type
+	 * @param array<string, mixed> $attr Shortcode attributes.
+	 * @param string               $type Snippet type.
 	 *
 	 * @return int|null
 	 */
-	public function getSnippetId( $attr, $type ) {
+	public function get_snippet_id( $attr, $type ) {
 		$id = isset( $attr['id'] ) ? (int) $attr['id'] : null;
 
-		if ( $id && $type != WINP_Helper::get_snippet_type( $id ) ) {
-			$id = 0;
+		$snippet_type = null;
+
+		// Only resolve snippet type when a valid (truthy) ID is provided to avoid
+		// unnecessary request parsing or database lookups for invalid IDs.
+		if ( $id ) {
+			$snippet_type = WINP_Helper::get_snippet_type( $id );
+
+			// Security: Reject if get_snippet_type() returned false (invalid post type)
+			// or if the snippet type doesn't match the expected type.
+			if ( false === $snippet_type || $snippet_type !== $type ) {
+				$id = 0;
+			}
 		}
 
 		return $id;
@@ -101,14 +172,14 @@ class WINP_SnippetShortcode extends Wbcr_FactoryShortcodes335_Shortcode {
 	/**
 	 * Get snippet activate
 	 *
-	 * @param $snippet_meta
+	 * @param array<string, mixed> $snippet_meta Snippet metadata.
 	 *
 	 * @return bool
 	 */
-	public function getSnippetActivate( $snippet_meta ) {
-		// WPML Compatibility
+	public function get_snippet_activate( $snippet_meta ) {
+		// WPML Compatibility.
 		if ( defined( 'WPML_PLUGIN_FILE' ) ) {
-			$wpml_langs = isset( $snippet_meta[ $this->plugin->getPrefix() . 'snippet_wpml_lang' ][0] ) ? $snippet_meta[ $this->plugin->getPrefix() . 'snippet_wpml_lang' ][0] : '';
+			$wpml_langs = isset( $snippet_meta['wbcr_inp_snippet_wpml_lang'][0] ) ? $snippet_meta['wbcr_inp_snippet_wpml_lang'][0] : '';
 			if ( $wpml_langs !== '' && defined( 'ICL_LANGUAGE_CODE' ) ) {
 				if ( ! in_array( ICL_LANGUAGE_CODE, explode( ',', $wpml_langs ) ) ) {
 					return false;
@@ -116,47 +187,48 @@ class WINP_SnippetShortcode extends Wbcr_FactoryShortcodes335_Shortcode {
 			}
 		}
 
-		return isset( $snippet_meta[ $this->plugin->getPrefix() . 'snippet_activate' ] ) && $snippet_meta[ $this->plugin->getPrefix() . 'snippet_activate' ][0];
+		return isset( $snippet_meta['wbcr_inp_snippet_activate'] ) && $snippet_meta['wbcr_inp_snippet_activate'][0];
 	}
 
 	/**
 	 * Get snippet scope
 	 *
-	 * @param $snippet_meta
+	 * @param array<string, mixed> $snippet_meta Snippet metadata.
 	 *
-	 * @return null
+	 * @return string|null
 	 */
-	public function getSnippetScope( $snippet_meta ) {
-		return isset( $snippet_meta[ $this->plugin->getPrefix() . 'snippet_scope' ] ) ? $snippet_meta[ $this->plugin->getPrefix() . 'snippet_scope' ][0] : null;
+	public function get_snippet_scope( $snippet_meta ) {
+		return isset( $snippet_meta['wbcr_inp_snippet_scope'] ) ? $snippet_meta['wbcr_inp_snippet_scope'][0] : null;
 	}
 
 	/**
 	 * Get snippet content
 	 *
-	 * @param WP_Post $snippet
-	 * @param array $snippet_meta
-	 * @param int $id
+	 * @param WP_Post              $snippet      Snippet post object.
+	 * @param array<string, mixed> $snippet_meta Snippet metadata.
+	 * @param int                  $id           Snippet ID.
 	 *
-	 * @return null|string
+	 * @return string|null
 	 */
-	public function getSnippetContent( $snippet, $snippet_meta, $id ) {
+	public function get_snippet_content( $snippet, $snippet_meta, $id ) {
 		$snippet_code = WINP_Helper::get_snippet_code( $snippet );
 
-		if ( WINP_Plugin::app()->getOption( 'execute_shortcode' ) ) {
+		if ( get_option( 'wbcr_inp_execute_shortcode' ) ) {
 			$snippet_code = do_shortcode( $snippet_code );
 		}
 
-		return WINP_Plugin::app()->getExecuteObject()->prepareCode( $snippet_code, $id );
+		return WINP_Plugin::app()->get_execute_object()->prepareCode( $snippet_code, $id );
 	}
 
 	/**
 	 * Content render
 	 *
-	 * @param array $attr
-	 * @param string $content
-	 * @param string $tag
+	 * @param array<string, mixed> $attr    Shortcode attributes.
+	 * @param string               $content Shortcode content.
+	 * @param string               $tag     Shortcode tag.
+	 *
+	 * @return void
 	 */
 	public function html( $attr, $content, $tag ) {
-
 	}
 }

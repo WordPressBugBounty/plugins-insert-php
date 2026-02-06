@@ -1,7 +1,5 @@
 /**
  * Snippets list table
- * @author Webcraftic <wordpress.webraftic@gmail.com> 
- * @copyright Webcraftic 02.06.2018
  */
 
 .wp-list-table {
@@ -47,7 +45,7 @@
     }
 
     & .winp-snippet-active-switch, .winp-snippet-inactive-switch {
-      background-color: #2196f3;
+      background-color: #6366f1;
       margin-top: 5px;
       width: 40px;
       height: 20px;
@@ -176,17 +174,16 @@
 }
 
 .wbcr_inp_shortcode_input, .wbcr_inp_shortcode_input:focus {
-  border: 0;
-  background: transparent;
+  border: 1px solid #cbcbcb;
+  background: #f6f6f6;
   box-shadow: none;
   outline: none;
   width: 100%;
-
   color: #555;
   font-size: 13px;
-  line-height: 1.5em;
-  padding: 0;
+  padding: 5px;
   margin: 0;
+  text-align: center;
 }
 
 .wbcr_inp_input_priority, .wbcr_inp_input_priority:focus {
@@ -236,6 +233,33 @@
         width: 0;
         font-size: 0;
       }
+    }
+  }
+}
+
+// RTL support for snippet toggle switches
+[dir="rtl"] .wp-list-table td {
+  .winp-snippet-active-switch, .winp-snippet-inactive-switch {
+    &:before {
+      -webkit-transform: translateX(0);
+      transform: translateX(0);
+    }
+
+    &:hover:before {
+      -webkit-transform: translateX(-20%);
+      transform: translateX(-20%);
+    }
+  }
+
+  .winp-inactive.winp-snippet-active-switch {
+    &:before {
+      -webkit-transform: translateX(-100%);
+      transform: translateX(-100%);
+    }
+
+    &:hover:before {
+      -webkit-transform: translateX(-80%);
+      transform: translateX(-80%);
     }
   }
 }

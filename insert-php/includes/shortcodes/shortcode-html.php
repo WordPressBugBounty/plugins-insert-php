@@ -20,10 +20,11 @@ class WINP_SnippetShortcodeHtml extends WINP_SnippetShortcode {
 	 * @param string $tag
 	 */
 	public function html( $attr, $content, $tag ) {
-		$id = $this->getSnippetId( $attr, WINP_SNIPPET_TYPE_HTML );
+		$id = $this->get_snippet_id( $attr, WINP_SNIPPET_TYPE_HTML );
 
 		if ( ! $id ) {
-			echo '<span style="color:red">' . __( '[' . esc_html( $tag ) . ']: PHP snippets error (not passed the snippet ID)', 'insert-php' ) . '</span>';
+			/* translators: %s: Shortcode tag name */
+			echo '<span style="color:red">' . sprintf( esc_html__( '[%s]: PHP snippets error (not passed the snippet ID)', 'insert-php' ), esc_html( $tag ) ) . '</span>';
 
 			return;
 		}
@@ -35,30 +36,32 @@ class WINP_SnippetShortcodeHtml extends WINP_SnippetShortcode {
 			return;
 		}
 
-		$attr = $this->filterAttributes( $attr, $id );
+		$attr = $this->filter_attributes( $attr, $id );
 
 		// Let users pass arbitrary variables, through shortcode attributes.
 		// @since 2.0.5
 		extract( $attr, EXTR_SKIP );
 
-		$is_activate     = $this->getSnippetActivate( $snippet_meta );
-		$snippet_content = $this->getSnippetContent( $snippet, $snippet_meta, $id );
-		$snippet_scope   = $this->getSnippetScope( $snippet_meta );
-		$is_condition    = WINP_Plugin::app()->getExecuteObject()->checkCondition( $id );
+		$is_activate     = $this->get_snippet_activate( $snippet_meta );
+		$snippet_content = $this->get_snippet_content( $snippet, $snippet_meta, $id );
+		$snippet_scope   = $this->get_snippet_scope( $snippet_meta );
+		$is_condition    = WINP_Plugin::app()->get_execute_object()->checkCondition( $id );
 
 		if ( ! $is_activate || empty( $snippet_content ) || $snippet_scope != 'shortcode' || ! $is_condition ) {
 			return;
 		}
 
-		if( defined( 'DISALLOW_UNFILTERED_HTML' ) && DISALLOW_UNFILTERED_HTML ) {
-			if ( is_user_logged_in() && WINP_Plugin::app()->currentUserCan() ) {
-				echo __( '[Woody snippet cannot be executed because you have disabled the insertion of unfiltered html!]', 'insert-php' );
+		if ( defined( 'DISALLOW_UNFILTERED_HTML' ) && DISALLOW_UNFILTERED_HTML ) {
+			if ( is_user_logged_in() && WINP_Plugin::app()->current_user_car() ) {
+				echo esc_html__( 'This Woody snippet cannot run because unfiltered HTML insertion is disabled.', 'insert-php' );
 			}
 
 			return;
 		}
 
+		// Track shortcode execution.
+		WINP_Plugin::app()->get_execute_object()->track_shortcode_snippet( $id );
+
 		echo( $snippet_content );
 	}
-
 }

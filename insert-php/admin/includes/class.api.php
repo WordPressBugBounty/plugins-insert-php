@@ -3,8 +3,6 @@
 /**
  * Woody API class
  *
- * @author        Webcraftic <wordpress.webraftic@gmail.com>
- * @copyright (c) 11.12.2018, Webcraftic
  * @version       1.0
  */
 
@@ -16,17 +14,6 @@ if ( ! defined( 'ABSPATH' ) ) {
 class WINP_Api extends WINP_Request {
 
 	const WINP_API_SNIPPET = 'snippet';
-	const WINP_API_TYPE = 'type';
-
-	/**
-	 * WINP_Api constructor.
-	 */
-	public function __construct() {
-		parent::__construct();
-
-		require_once WINP_PLUGIN_DIR . '/includes/jsonmapper/class/snippet.php';
-		require_once WINP_PLUGIN_DIR . '/includes/jsonmapper/class/type.php';
-	}
 
 	/**
 	 * Set page parameters
@@ -71,13 +58,17 @@ class WINP_Api extends WINP_Request {
 	 * @return bool|mixed
 	 */
 	public function get_all_snippets( $common = false, $parameters = [] ) {
+		if ( get_option( WINP_PLUGIN_NAMESPACE . '_logger_flag' ) !== 'yes' ) {
+			update_option( WINP_PLUGIN_NAMESPACE . '_logger_flag', 'yes' );
+		}
+
 		$url  = $common ? 'common' : self::WINP_API_SNIPPET;
 		$args = $parameters ? '&' . implode( '&', $parameters ) : '';
 		$json = $this->get( $url . '?expand=type' . $args );
 
 		$this->set_page_params( $json );
 
-		return $this->map_objects( $json, 'WINP\JsonMapper\Snippet' );
+		return $this->map_objects( $json, 'WINP_DTO_Snippet' );
 	}
 
 	/**
@@ -92,8 +83,10 @@ class WINP_Api extends WINP_Request {
 		$url  = $common ? 'common' : self::WINP_API_SNIPPET;
 		$json = $this->get( $url . '/view?id=' . $id . '&expand=type' );
 
-		$snippet = $this->map_object( $json, 'WINP\JsonMapper\Snippet' );
-		$snippet->execute_everywhere = $snippet->execute_everywhere ? 'evrywhere' : 'shortcode';
+		$snippet = $this->map_object( $json, 'WINP_DTO_Snippet' );
+		if ( is_object( $snippet ) && property_exists( $snippet, 'execute_everywhere' ) ) {
+			$snippet->execute_everywhere = $snippet->execute_everywhere ? 'evrywhere' : 'shortcode';
+		}
 		return $snippet;
 	}
 
@@ -119,7 +112,7 @@ class WINP_Api extends WINP_Request {
 
 		$json = $this->post( self::WINP_API_SNIPPET . '/create', $args );
 
-		return $this->map_object( $json, 'WINP\JsonMapper\Snippet' );
+		return $this->map_object( $json, 'WINP_DTO_Snippet' );
 	}
 
 	/**
@@ -145,7 +138,7 @@ class WINP_Api extends WINP_Request {
 
 		$json = $this->put( self::WINP_API_SNIPPET . '/update/?id=' . $id, $args );
 
-		return $this->map_object( $json, 'WINP\JsonMapper\Snippet' );
+		return $this->map_object( $json, 'WINP_DTO_Snippet' );
 	}
 
 	/**
@@ -168,25 +161,58 @@ class WINP_Api extends WINP_Request {
 	/**
 	 * Get all types
 	 *
-	 * @return object|boolean
+	 * @return array<object>
 	 */
 	public function get_all_types() {
-		$json = $this->get( self::WINP_API_TYPE );
+		$types_data = [
+			[
+				'id'    => 1,
+				'slug'  => 'php',
+				'title' => 'PHP',
+			],
+			[
+				'id'    => 2,
+				'slug'  => 'css',
+				'title' => 'CSS',
+			],
+			[
+				'id'    => 3,
+				'slug'  => 'js',
+				'title' => 'JavaScript',
+			],
+			[
+				'id'    => 4,
+				'slug'  => 'html',
+				'title' => 'HTML',
+			],
+			[
+				'id'    => 5,
+				'slug'  => 'text',
+				'title' => 'Text',
+			],
+			[
+				'id'    => 6,
+				'slug'  => 'universal',
+				'title' => 'Universal',
+			],
+			[
+				'id'    => 7,
+				'slug'  => 'advert',
+				'title' => 'Advert',
+			],
+		];
 
-		return $this->map_objects( $json, 'WINP\JsonMapper\Type' );
-	}
+		$types = [];
+		foreach ( $types_data as $data ) {
+			try {
+				$types[] = WINP_DTO_Type::from_array( $data );
+			} catch ( Exception $e ) {
+				// Skip invalid types.
+				continue;
+			}
+		}
 
-	/**
-	 * Get type
-	 *
-	 * @param $id
-	 *
-	 * @return object|boolean
-	 */
-	public function get_type( $id ) {
-		$json = $this->get( self::WINP_API_TYPE . '/view/?id=' . $id );
-
-		return $this->map_object( $json, 'WINP\JsonMapper\Type' );
+		return $types;
 	}
 
 	/**
@@ -197,7 +223,7 @@ class WINP_Api extends WINP_Request {
 	 * @return bool
 	 */
 	public function is_changed( $post_id ) {
-		$data = get_post_meta( $post_id, WINP_Plugin::app()->getPrefix() . 'snippet_check_data', true );
+		$data = get_post_meta( $post_id, 'wbcr_inp_snippet_check_data', true );
 		if ( ! empty( $data ) && isset( $data['content'] ) ) {
 			$post = get_post( $post_id );
 
@@ -217,11 +243,10 @@ class WINP_Api extends WINP_Request {
 	private function get_type_id_by_type( $type_title ) {
 		if ( $type_title ) {
 			$types = $this->get_all_types();
-			if ( ! empty( $types ) && is_array( $types ) ) {
-				foreach ( $types as $type ) {
-					if ( $type_title == $type->slug ) {
-						return $type->id;
-					}
+
+			foreach ( $types as $type ) {
+				if ( property_exists( $type, 'slug' ) && property_exists( $type, 'id' ) && $type_title === $type->slug ) {
+					return $type->id;
 				}
 			}
 		}
@@ -266,10 +291,10 @@ class WINP_Api extends WINP_Request {
 					return true;
 				}
 
-				return __( 'Synchronization snippet error', 'insert-php' );
+				return __( 'Snippet synchronization error', 'insert-php' );
 			}
 
-			return __( 'Unknown sippet type', 'insert-php' );
+			return __( 'Unknown snippet type', 'insert-php' );
 		}
 
 		return false;
@@ -318,5 +343,4 @@ class WINP_Api extends WINP_Request {
 
 		return false;
 	}
-
 }

@@ -2,9 +2,7 @@
 /**
  * Filter for snippet list
  *
- * @author        Webcraftic <wordpress.webraftic@gmail.com>
- * @copyright (c) 16.11.2018, Webcraftic
- * @version       1.0
+ * @package Woody_Code_Snippets
  */
 
 // Exit if accessed directly
@@ -26,25 +24,27 @@ class WINP_Filter_List {
 	 * Create the dropdown
 	 */
 	function restrictManagePosts() {
-		$type = WINP_Plugin::app()->request->get( 'post_type', 'post' );
+		$type = WINP_HTTP::get( 'post_type', 'post' );
 
-		$terms = get_terms( [
-			'taxonomy'   => WINP_SNIPPETS_TAXONOMY,
-			'hide_empty' => true,
-		] );
+		$terms = get_terms(
+			[
+				'taxonomy'   => WINP_SNIPPETS_TAXONOMY,
+				'hide_empty' => true,
+			] 
+		);
 
 		if ( WINP_SNIPPETS_POST_TYPE == $type && ! empty( $terms ) ) { ?>
-            <select name="winp_filter_tag">
-                <option value=""><?php _e( 'Filter by tag:', 'insert-php' ); ?></option>
+			<select name="winp_filter_tag">
+				<option value=""><?php _e( 'Filter by tag:', 'insert-php' ); ?></option>
 				<?php
-				$current_filter = WINP_Plugin::app()->request->get( 'winp_filter_tag', '' );
+				$current_filter = WINP_HTTP::get( 'winp_filter_tag', '' );
 				foreach ( $terms as $term ) {
 					if ( is_object( $term ) && isset( $term->slug ) ) {
 						printf( '<option value="%s"%s>%s</option>', $term->slug, $term->slug == $current_filter ? ' selected="selected"' : '', $term->name );
 					}
 				}
 				?>
-            </select>
+			</select>
 			<?php
 		}
 
@@ -58,18 +58,19 @@ class WINP_Filter_List {
 			'Advertisement',
 		];
 
-		if ( WINP_SNIPPETS_POST_TYPE == $type && ! empty( $types ) ) { ?>
-            <select name="winp_filter_type">
-                <option value=""><?php _e( 'Filter by type:', 'insert-php' ); ?></option>
+		if ( WINP_SNIPPETS_POST_TYPE == $type && ! empty( $types ) ) {
+			?>
+			<select name="winp_filter_type">
+				<option value=""><?php _e( 'Filter by type:', 'insert-php' ); ?></option>
 				<?php
-				$current_type = WINP_Plugin::app()->request->get( 'winp_filter_type', '' );
+				$current_type = WINP_HTTP::get( 'winp_filter_type', '' );
 				foreach ( $types as $t ) {
 					if ( is_string( $t ) ) {
 						printf( '<option value="%s"%s>%s</option>', strtolower( $t ), strtolower( $t ) == $current_type ? ' selected="selected"' : '', $t );
 					}
 				}
 				?>
-            </select>
+			</select>
 			<?php
 		}
 	}
@@ -82,30 +83,29 @@ class WINP_Filter_List {
 	function parseQuery( $query ) {
 		global $pagenow;
 
-		$type = WINP_Plugin::app()->request->get( 'post_type' );
+		$type = WINP_HTTP::get( 'post_type' );
 
-		if ( WINP_SNIPPETS_POST_TYPE == $type && is_admin() && 'edit.php' == $pagenow && WINP_Plugin::app()->request->get( 'winp_filter_tag', '' ) ) {
+		if ( WINP_SNIPPETS_POST_TYPE == $type && is_admin() && 'edit.php' == $pagenow && WINP_HTTP::get( 'winp_filter_tag', '' ) ) {
 			$taxquery = [
 				[
 					'taxonomy' => WINP_SNIPPETS_TAXONOMY,
 					'field'    => 'slug',
-					'terms'    => [ WINP_Plugin::app()->request->get( 'winp_filter_tag', '' ) ],
+					'terms'    => [ WINP_HTTP::get( 'winp_filter_tag', '' ) ],
 					'operator' => 'IN',
 				],
 			];
 			$query->set( 'tax_query', $taxquery );
 		}
 
-		if ( WINP_SNIPPETS_POST_TYPE == $type && is_admin() && 'edit.php' == $pagenow && WINP_Plugin::app()->request->get( 'winp_filter_type', '' ) ) {
+		if ( WINP_SNIPPETS_POST_TYPE == $type && is_admin() && 'edit.php' == $pagenow && WINP_HTTP::get( 'winp_filter_type', '' ) ) {
 			$meta_query = [
 				[
 					'key'     => 'wbcr_inp_snippet_type',
-					'value'   => WINP_Plugin::app()->request->get( 'winp_filter_type', '' ),
+					'value'   => WINP_HTTP::get( 'winp_filter_type', '' ),
 					'compare' => '=',
-				]
+				],
 			];
 			$query->set( 'meta_query', $meta_query );
 		}
 	}
-
 }

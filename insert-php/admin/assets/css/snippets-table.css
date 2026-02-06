@@ -1,113 +1,134 @@
 #winp-snippet-library .wbcr-inp-enable-snippet-button .dashicons,
 #winp-snippet-library .wbcr-inp-delete-snippet-button .dashicons {
-    margin-top: 4px;
+  margin-top: 4px;
 }
-
 #winp-snippet-library .wbcr-inp-snippet-type-label {
-    display: inline-block;
-    padding: 3px 8px 6px;
-    border-radius: 3px;
-    font-weight: bold;
-    width: 30px;
-    text-align: center;
+  display: inline-block;
+  padding: 3px 8px 6px;
+  border-radius: 3px;
+  font-weight: bold;
+  text-align: center;
 }
-
-#winp-snippet-library .wbcr-inp-snippet-type-label.wbcr-inp-type-php {
-    background: #777bb3;
-    color: #ffffff;
+#winp-snippet-library .wbcr-inp-snippet-type-label.wbcr-inp-type-PHP {
+  background: #777bb3;
+  color: #ffffff;
 }
-
-#winp-snippet-library .wbcr-inp-snippet-type-label.wbcr-inp-type-text {
-    background: #4CAF50;
-    color: #fffffd;
+#winp-snippet-library .wbcr-inp-snippet-type-label.wbcr-inp-type-Text {
+  background: #4CAF50;
+  color: #fffffd;
 }
-
-#winp-snippet-library .wbcr-inp-snippet-type-label.wbcr-inp-type-universal {
-    background: #607D8B;
-    color: #ffffff;
+#winp-snippet-library .wbcr-inp-snippet-type-label.wbcr-inp-type-Universal {
+  background: #607D8B;
+  color: #ffffff;
 }
-
-#winp-snippet-library .wbcr-inp-snippet-type-label.wbcr-inp-type-css {
-    background: #1572b6;
-    color: #ffffff;
+#winp-snippet-library .wbcr-inp-snippet-type-label.wbcr-inp-type-CSS {
+  background: #1572b6;
+  color: #ffffff;
 }
-
-#winp-snippet-library .wbcr-inp-snippet-type-label.wbcr-inp-type-js {
-    background: #f7df1e;
-    color: #655b0e;
+#winp-snippet-library .wbcr-inp-snippet-type-label.wbcr-inp-type-JS {
+  background: #f7df1e;
+  color: #655b0e;
 }
-
-#winp-snippet-library .wbcr-inp-snippet-type-label.wbcr-inp-type-html {
-    background: #e44d26;
-    color: #fffffd;
+#winp-snippet-library .wbcr-inp-snippet-type-label.wbcr-inp-type-HTML {
+  background: #e44d26;
+  color: #fffffd;
 }
-
-.winp-snippet-library {
-    /*.wbcr-inp-snippet-description {
-      width: 90%;
-      white-space: nowrap;
-      overflow: hidden;
-      text-overflow: ellipsis;
-    }*/
+#winp-snippet-library .wbcr-inp-snippet-type-label.wbcr-inp-type-Advert {
+  background: #26aa5d;
+  color: #fffffd;
 }
-
-.winp-snippet-library p.winp-icon {
-    padding: 10px 0 50px 0;
-    margin-right: 30px;
+.winp-snippet-library .winp-upsell-container {
+  max-width: 640px;
+  margin: 60px auto;
+  padding: 0 20px;
 }
-
-.winp-snippet-library p.winp-icon span {
-    font-size: 5em;
-    color: #c5ccd2;
+.winp-snippet-library .winp-upsell-card {
+  background: #fff;
+  border: 1px solid #e5e7eb;
+  border-radius: 12px;
+  padding: 40px;
+  text-align: center;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
 }
-
-.winp-snippet-library p.winp-header-modal {
-    font-size: 28px;
-    color: #717880;
+.winp-snippet-library .winp-upsell-icon {
+  width: 64px;
+  height: 64px;
+  background: #6366f1;
+  border-radius: 12px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 24px;
 }
-
-.winp-snippet-library p.winp-title-modal {
-    font-size: 14px;
-    color: #b3b7ba;
-    padding-bottom: 20px;
+.winp-snippet-library .winp-upsell-icon .dashicons {
+  font-size: 32px;
+  width: 32px;
+  height: 32px;
+  color: #fff;
 }
-
-.winp-snippet-library .winp-more-padding {
-    padding-top: 100px;
+.winp-snippet-library .winp-upsell-title {
+  font-size: 24px;
+  font-weight: 600;
+  margin: 0 0 8px 0;
+  color: #111827;
 }
-
+.winp-snippet-library .winp-upsell-badge {
+  font-size: 14px;
+  color: #9ca3af;
+  margin: 0 0 20px 0;
+  font-weight: 500;
+}
+.winp-snippet-library .winp-upsell-description {
+  font-size: 16px;
+  color: #6b7280;
+  line-height: 1.6;
+  margin: 0 0 32px 0;
+}
+.winp-snippet-library .winp-upsell-button {
+  background: #6366f1 !important;
+  border-color: #6366f1 !important;
+  color: #fff !important;
+  padding: 14px 40px !important;
+  font-size: 18px !important;
+  font-weight: 600;
+  text-decoration: none;
+  display: inline-block;
+  border-radius: 6px;
+  box-shadow: none !important;
+  text-shadow: none !important;
+  height: auto !important;
+  line-height: normal !important;
+}
+.winp-snippet-library .winp-upsell-button:hover,
+.winp-snippet-library .winp-upsell-button:focus {
+  background: #5558e3 !important;
+  border-color: #5558e3 !important;
+  color: #fff !important;
+}
 .winp-snippet-library table.snippets .column-type {
-    width: 80px;
+  width: 120px;
 }
-
 .winp-snippet-library table.snippets .column-preview {
-    width: 130px;
+  width: 130px;
 }
-
 .winp-snippet-library table.snippets .column-datetime {
-    width: 130px;
+  width: 130px;
 }
-
 .winp-snippet-library table.snippets .column-insert,
 .winp-snippet-library table.snippets .column-delete {
-    width: 100px;
+  width: 100px;
 }
-
 #winp-library-buy-button {
-    background-color: #fdc018;
-    border-color: #e7b017;
-    color: white;
-    text-transform: uppercase;
-    border-radius: 1px;
-    padding: 10px 30px;
+  background-color: #fdc018;
+  border-color: #e7b017;
+  color: white;
+  text-transform: uppercase;
+  border-radius: 1px;
+  padding: 10px 30px;
 }
-
 #winp-library-buy-button span {
-    bottom: 13px;
+  bottom: 13px;
 }
-
 #winp-library-buy-button span:hover {
-    color: #f3f4ef;
+  color: #f3f4ef;
 }
-
-/*# sourceMappingURL=snippets-table.css.map */

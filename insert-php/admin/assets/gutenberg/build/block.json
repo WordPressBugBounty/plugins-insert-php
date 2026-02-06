@@ -1,0 +1,30 @@
+{
+  "$schema": "https://schemas.wp.org/trunk/block.json",
+  "apiVersion": 3,
+  "name": "wp-plugin-insert-php/winp-snippet",
+  "version": "1.0.0",
+  "title": "Woody Snippets",
+  "category": "widgets",
+  "description": "Executes PHP code, uses conditional logic to insert ads, text, media content and external service's code. Ensures no content duplication.",
+  "attributes": {
+    "id": {
+      "type": "number"
+    },
+    "attrs": {
+      "type": "array",
+      "default": []
+    },
+    "attrValues": {
+      "type": "array",
+      "default": []
+    }
+  },
+  "supports": {
+    "html": false,
+    "anchor": false
+  },
+  "textdomain": "insert-php",
+  "editorScript": "file:./index.js",
+  "editorStyle": "file:./style-index.css",
+  "render": "file:./render.php"
+}

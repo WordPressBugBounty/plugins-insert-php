@@ -2,9 +2,7 @@
 /**
  * Helpers tools
  *
- * @author        Webcraftic <wordpress.webraftic@gmail.com>
- * @copyright (c) 09.11.2017, Webcraftic
- * @version       1.0
+ * @package Woody_Code_Snippets
  */
 
 // Exit if accessed directly
@@ -22,7 +20,7 @@ class WINP_Helper {
 	public static function is_safe_mode() {
 		global $wbcr_inp_safe_mode;
 
-		if ( ! WINP_Plugin::app()->currentUserCan() ) {
+		if ( ! current_user_can( 'manage_options' ) ) {
 			return false;
 		}
 
@@ -39,13 +37,13 @@ class WINP_Helper {
 	public static function enable_safe_mode() {
 		global $wbcr_inp_safe_mode;
 
-		if ( ! WINP_Plugin::app()->currentUserCan() ) {
+		if ( ! current_user_can( 'manage_options' ) ) {
 			return false;
 		}
 
 		if ( ( ! $wbcr_inp_safe_mode || ! isset( $_COOKIE['wbcr-php-snippets-safe-mode'] ) ) ) {
 			$wbcr_inp_safe_mode = true;
-			setcookie( "wbcr-php-snippets-safe-mode", 1, time() + 3600, '/' );
+			setcookie( 'wbcr-php-snippets-safe-mode', 1, time() + 3600, '/' );
 
 			return true;
 		}
@@ -59,7 +57,7 @@ class WINP_Helper {
 	public static function disable_safe_mode() {
 		global $wbcr_inp_safe_mode;
 
-		if ( ! WINP_Plugin::app()->currentUserCan() ) {
+		if ( ! current_user_can( 'manage_options' ) ) {
 			return false;
 		}
 
@@ -78,25 +76,6 @@ class WINP_Helper {
 	}
 
 	/**
-	 * Should show a page about the plugin or not.
-	 *
-	 * @return bool
-	 */
-	public static function is_need_show_about_page() {
-		$need_show_about = (int) get_option( WINP_Plugin::app()->getOptionName( 'what_new_210' ) );
-
-		$is_ajax = WINP_Helper::doing_ajax();
-		$is_cron = WINP_Helper::doing_cron();
-		$is_rest = WINP_Helper::doing_rest_api();
-
-		if ( $need_show_about && ! $is_ajax && ! $is_cron && ! $is_rest ) {
-			return true;
-		}
-
-		return false;
-	}
-
-	/**
 	 * Gets and verified available attributes for snippets shortcodes.
 	 *
 	 * @param bool $tinymce
@@ -105,49 +84,49 @@ class WINP_Helper {
 	 */
 	public static function get_shortcode_data( $tinymce = false ) {
 
-		$snippets = get_posts( [
+		$snippets = get_posts(
+			[
 				'post_type'   => WINP_SNIPPETS_POST_TYPE,
 				'meta_query'  => [
-						'relation' => 'AND',
-						[
-								'key'   => WINP_Plugin::app()->getPrefix() . 'snippet_scope',
-								'value' => 'shortcode',
-						],
-						[
-								'key'   => WINP_Plugin::app()->getPrefix() . 'snippet_activate',
-								'value' => 1,
-						],
+					'relation' => 'AND',
+					[
+						'key'   => 'wbcr_inp_snippet_scope',
+						'value' => 'shortcode',
+					],
+					[
+						'key'   => 'wbcr_inp_snippet_activate',
+						'value' => 1,
+					],
 				],
 				'post_status' => 'publish',
 				'numberposts' => - 1,
-		] );
+			] 
+		);
 
 		$result = [];
 
 		if ( ! empty( $snippets ) ) {
 			foreach ( (array) $snippets as $snippet ) {
 				$tag_names    = [ 'id' ];
-				$snippet_type = WINP_Helper::get_snippet_type( $snippet->ID );
+				$snippet_type = self::get_snippet_type( $snippet->ID );
 
-				$available_tags = WINP_Helper::getMetaOption( $snippet->ID, 'snippet_tags' );
+				$available_tags = self::getMetaOption( $snippet->ID, 'snippet_tags' );
 				$available_tags = trim( rtrim( $available_tags ) );
 
 				if ( ! empty( $available_tags ) ) {
 					$available_tags = array_map( 'trim', explode( ',', $available_tags ) );
 					$available_tags = array_unique( $available_tags );
-				} else {
-					if ( $snippet_type !== 'text' && $snippet_type !== 'advert' ) {
+				} elseif ( $snippet_type !== 'text' && $snippet_type !== 'advert' ) {
 						$available_tags = [ 'id', 'title' ];
-					} else {
-						$available_tags = [ 'id' ];
-					}
+				} else {
+					$available_tags = [ 'id' ];
 				}
 
 				$tags = [
-						'id'    => $snippet->ID,
-						'type'  => $snippet_type,
-						'name'  => $snippet_type == WINP_SNIPPET_TYPE_UNIVERSAL ? 'wbcr_snippet' : 'wbcr_' . $snippet_type . '_snippet',
-						'title' => empty( $snippet->post_title ) ? '(no titled, ID=' . $snippet->ID . ')' : $snippet->post_title,
+					'id'    => $snippet->ID,
+					'type'  => $snippet_type,
+					'name'  => $snippet_type == WINP_SNIPPET_TYPE_UNIVERSAL ? 'wbcr_snippet' : 'wbcr_' . $snippet_type . '_snippet',
+					'title' => empty( $snippet->post_title ) ? '(no titled, ID=' . $snippet->ID . ')' : $snippet->post_title,
 				];
 
 				if ( ! empty( $available_tags ) ) {
@@ -156,9 +135,9 @@ class WINP_Helper {
 							if ( 'title' == $tag ) {
 								$tags['title'] = empty( $snippet->post_title ) ? '(no titled, ID=' . $snippet->ID . ')' : $snippet->post_title;
 								$tag_names[]   = 'title';
-							} else if ( 'id' != $tag ) {
+							} elseif ( 'id' != $tag ) {
 								$tag          = preg_replace( '/[^a-zA-Z0-9_\x7f-\xff]/', '', $tag );
-								$tags[ $tag ] = "";
+								$tags[ $tag ] = '';
 								$tag_names[]  = $tag;
 							}
 						}
@@ -177,17 +156,17 @@ class WINP_Helper {
 	/**
 	 * Get snippet type
 	 *
-	 * @param null $post_id
+	 * @param mixed $post_id Post ID.
 	 *
-	 * @return array|mixed|string
+	 * @return string|false Snippet type string, or false if post is not a valid snippet post type or not found.
 	 */
 	public static function get_snippet_type( $post_id = null ) {
 		global $post;
 
 		$_post = $post;
 
-		$snippet_type = WINP_Plugin::app()->request->get( 'winp_item', WINP_SNIPPET_TYPE_PHP, 'sanitize_key' );
-		$get_post     = WINP_Plugin::app()->request->get( 'post', '' );
+		$snippet_type = WINP_HTTP::get( 'winp_item', WINP_SNIPPET_TYPE_PHP, 'sanitize_key' );
+		$get_post     = WINP_HTTP::get( 'post', '' );
 
 		if ( empty( $post_id ) && ! empty( $get_post ) && ! is_array( $get_post ) ) {
 			$post_id = esc_attr( $get_post );
@@ -195,10 +174,16 @@ class WINP_Helper {
 
 		if ( ! empty( $post_id ) ) {
 			$_post = get_post( $post_id );
+			
+			// Security: Validate that the post belongs to the snippet post type
+			// to prevent arbitrary post content execution via shortcodes.
+			if ( empty( $_post ) || WINP_SNIPPETS_POST_TYPE !== $_post->post_type ) {
+				return false;
+			}
 		}
 
 		if ( ! empty( $_post ) && WINP_SNIPPETS_POST_TYPE === $_post->post_type ) {
-			$_snippet_type = get_post_meta( $_post->ID, WINP_Plugin::app()->getPrefix() . 'snippet_type', true );
+			$_snippet_type = get_post_meta( $_post->ID, 'wbcr_inp_snippet_type', true );
 			$snippet_type  = $_snippet_type ? $_snippet_type : $snippet_type;
 		}
 
@@ -219,10 +204,10 @@ class WINP_Helper {
 	 */
 	public static function doing_rest_api() {
 		$prefix     = rest_get_url_prefix();
-		$rest_route = WINP_Plugin::app()->request->get( 'rest_route', null );
+		$rest_route = WINP_HTTP::get( 'rest_route', null );
 		if ( defined( 'REST_REQUEST' ) && REST_REQUEST // (#1)
-		     || ! is_null( $rest_route ) // (#2)
-		        && strpos( trim( $rest_route, '\\/' ), $prefix, 0 ) === 0 ) {
+			|| ! is_null( $rest_route ) // (#2)
+				&& strpos( trim( $rest_route, '\\/' ), $prefix, 0 ) === 0 ) {
 			return true;
 		}
 
@@ -267,13 +252,11 @@ class WINP_Helper {
 	 * @param WP_Post $post
 	 *
 	 * @return string snippet code
-	 * @author Alexander Kovalev <alex.kovalevv@gmail.com>
 	 * @since  2.2.1
-	 *
 	 */
 	public static function get_snippet_code( $post ) {
 		if ( empty( $post->post_content ) ) {
-			return WINP_Helper::getMetaOption( $post->ID, 'snippet_code' );
+			return self::getMetaOption( $post->ID, 'snippet_code' );
 		}
 
 		return $post->post_content;
@@ -282,9 +265,9 @@ class WINP_Helper {
 	/**
 	 * Get meta option
 	 *
-	 * @param int $post_id
+	 * @param int    $post_id
 	 * @param string $option_name
-	 * @param mixed $default
+	 * @param mixed  $default
 	 *
 	 * @return mixed|array
 	 */
@@ -301,42 +284,27 @@ class WINP_Helper {
 			}
 		}
 
-		return isset( self::$meta_options[ $post_id ][ WINP_Plugin::app()->getPrefix() . $option_name ] ) ? self::$meta_options[ $post_id ][ WINP_Plugin::app()->getPrefix() . $option_name ] : $default;
+		return isset( self::$meta_options[ $post_id ][ 'wbcr_inp_' . $option_name ] ) ? self::$meta_options[ $post_id ][ 'wbcr_inp_' . $option_name ] : $default;
 	}
 
 	/**
 	 * Udpdate meta option
 	 *
-	 * @param int $post_id
+	 * @param int    $post_id
 	 * @param string $option_name
-	 * @param mixed $option_value
+	 * @param mixed  $option_value
 	 *
 	 * @return bool|int
 	 */
 	public static function updateMetaOption( $post_id, $option_name, $option_value ) {
 		$post_id = (int) $post_id;
 
-		return update_post_meta( $post_id, WINP_Plugin::app()->getPrefix() . $option_name, $option_value );
-	}
-
-	/**
-	 * Remove meta option
-	 *
-	 * @param int $post_id
-	 * @param string $option_name
-	 *
-	 * @return bool|int
-	 */
-	public static function removeMetaOption( $post_id, $option_name ) {
-		$post_id = (int) $post_id;
-
-		return delete_post_meta( $post_id, WINP_Plugin::app()->getPrefix() . $option_name );
+		return update_post_meta( $post_id, 'wbcr_inp_' . $option_name, $option_value );
 	}
 
 	/**
 	 * Check capabilities for snippets post type.
 	 *
-	 * @author Alexander Kovalev <alex.kovalevv@gmail.com>
 	 * @since  2.2.0
 	 */
 	public static function has_post_capabilities() {
@@ -352,7 +320,6 @@ class WINP_Helper {
 	/**
 	 * Set capabilities for snippets post type.
 	 *
-	 * @author Alexander Kovalev <alex.kovalevv@gmail.com>
 	 * @since  2.2.0
 	 */
 	public static function set_post_capabilities() {
@@ -378,100 +345,102 @@ class WINP_Helper {
 	 */
 	public static function create_demo_snippets() {
 
-		update_option( WINP_Plugin::app()->getOptionName( 'activate_by_default' ), 1 );
-		update_option( WINP_Plugin::app()->getOptionName( 'complete_uninstall' ), 0 );
-		update_option( WINP_Plugin::app()->getOptionName( 'code_editor_theme' ), 'default' );
-		update_option( WINP_Plugin::app()->getOptionName( 'code_editor_indent_with_tabs' ), 1 );
-		update_option( WINP_Plugin::app()->getOptionName( 'code_editor_tab_size' ), 4 );
-		update_option( WINP_Plugin::app()->getOptionName( 'code_editor_indent_unit' ), 4 );
-		update_option( WINP_Plugin::app()->getOptionName( 'code_editor_wrap_lines' ), 1 );
-		update_option( WINP_Plugin::app()->getOptionName( 'code_editor_line_numbers' ), 1 );
-		update_option( WINP_Plugin::app()->getOptionName( 'code_editor_auto_close_brackets' ), 1 );
-		update_option( WINP_Plugin::app()->getOptionName( 'code_editor_highlight_selection_matches' ), 0 );
+		update_option( 'wbcr_inp_activate_by_default', 1 );
+		update_option( 'wbcr_inp_complete_uninstall', 0 );
+		update_option( 'wbcr_inp_code_editor_theme', 'default' );
+		update_option( 'wbcr_inp_code_editor_indent_with_tabs', 1 );
+		update_option( 'wbcr_inp_code_editor_tab_size', 4 );
+		update_option( 'wbcr_inp_code_editor_indent_unit', 4 );
+		update_option( 'wbcr_inp_code_editor_wrap_lines', 1 );
+		update_option( 'wbcr_inp_code_editor_line_numbers', 1 );
+		update_option( 'wbcr_inp_code_editor_auto_close_brackets', 1 );
+		update_option( 'wbcr_inp_code_editor_highlight_selection_matches', 0 );
 
 		$posts = [
-				[
-						'post_title'   => __( 'Simple universal snippet: Google analytics tracking', 'insert-php' ),
-						'post_name'    => 'simple-universal-snippet',
-						'post_content' => self::get_simple_universal_snippet(),
-						'meta'         => [
-								'type'        => WINP_SNIPPET_TYPE_UNIVERSAL,
-								'description' => __( 'Google analytics tracking code will be added to all pages before the &lt;/head&gt; tag. Please remember to set the Tracking ID before activating the snippet.' ),
-								'filters'     => 'a:1:{i:0;O:8:"stdClass":2:{s:10:"conditions";a:1:{i:0;O:8:"stdClass":2:{s:4:"type";s:5:"scope";s:10:"conditions";a:1:{i:0;O:8:"stdClass":4:{s:5:"param";s:18:"location-some-page";s:8:"operator";s:6:"equals";s:4:"type";s:6:"select";s:5:"value";s:8:"base_web";}}}}s:4:"type";s:6:"showif";}}',
-								'tags'        => [ 'universal', 'tracking' ],
-								'priority'    => 10,
-						],
+			[
+				'post_title'   => __( 'Simple universal snippet: Google analytics tracking', 'insert-php' ),
+				'post_name'    => 'simple-universal-snippet',
+				'post_content' => self::get_simple_universal_snippet(),
+				'meta'         => [
+					'type'        => WINP_SNIPPET_TYPE_UNIVERSAL,
+					'description' => __( 'Google analytics tracking code will be added to all pages before the &lt;/head&gt; tag. Please remember to set the Tracking ID before activating the snippet.', 'insert-php' ),
+					'filters'     => 'a:1:{i:0;O:8:"stdClass":2:{s:10:"conditions";a:1:{i:0;O:8:"stdClass":2:{s:4:"type";s:5:"scope";s:10:"conditions";a:1:{i:0;O:8:"stdClass":4:{s:5:"param";s:18:"location-some-page";s:8:"operator";s:6:"equals";s:4:"type";s:6:"select";s:5:"value";s:8:"base_web";}}}}s:4:"type";s:6:"showif";}}',
+					'tags'        => [ 'universal', 'tracking' ],
+					'priority'    => 10,
 				],
-				[
-						'post_title'   => __( 'Simple text snippet: What is Lorem Ipsum?', 'insert-php' ),
-						'post_name'    => 'simple-text-snippet',
-						'post_content' => self::get_simple_text_snippet(),
-						'meta'         => [
-								'type'        => WINP_SNIPPET_TYPE_TEXT,
-								'description' => __( 'This ordinary maintenance text. With this snippet, you can fill your pages with meaningless English text.', 'insert-php' ),
-								'filters'     => 'a:1:{i:0;O:8:"stdClass":2:{s:10:"conditions";a:2:{i:0;O:8:"stdClass":2:{s:4:"type";s:5:"scope";s:10:"conditions";a:1:{i:0;O:8:"stdClass":4:{s:5:"param";s:18:"location-some-page";s:8:"operator";s:6:"equals";s:4:"type";s:6:"select";s:5:"value";s:9:"base_sing";}}}i:1;O:8:"stdClass":2:{s:4:"type";s:5:"scope";s:10:"conditions";a:2:{i:0;O:8:"stdClass":4:{s:5:"param";s:18:"location-post-type";s:8:"operator";s:6:"equals";s:4:"type";s:6:"select";s:5:"value";s:4:"post";}i:1;O:8:"stdClass":4:{s:5:"param";s:18:"location-post-type";s:8:"operator";s:6:"equals";s:4:"type";s:6:"select";s:5:"value";s:4:"page";}}}}s:4:"type";s:6:"showif";}}',
-								'tags'        => [ 'text', 'lorem ipsum' ],
-								'priority'    => 20,
-						],
+			],
+			[
+				'post_title'   => __( 'Simple text snippet: What is Lorem Ipsum?', 'insert-php' ),
+				'post_name'    => 'simple-text-snippet',
+				'post_content' => self::get_simple_text_snippet(),
+				'meta'         => [
+					'type'        => WINP_SNIPPET_TYPE_TEXT,
+					'description' => __( 'This is ordinary maintenance text. With this snippet, you can fill your pages with meaningless English text.', 'insert-php' ),
+					'filters'     => 'a:1:{i:0;O:8:"stdClass":2:{s:10:"conditions";a:2:{i:0;O:8:"stdClass":2:{s:4:"type";s:5:"scope";s:10:"conditions";a:1:{i:0;O:8:"stdClass":4:{s:5:"param";s:18:"location-some-page";s:8:"operator";s:6:"equals";s:4:"type";s:6:"select";s:5:"value";s:9:"base_sing";}}}i:1;O:8:"stdClass":2:{s:4:"type";s:5:"scope";s:10:"conditions";a:2:{i:0;O:8:"stdClass":4:{s:5:"param";s:18:"location-post-type";s:8:"operator";s:6:"equals";s:4:"type";s:6:"select";s:5:"value";s:4:"post";}i:1;O:8:"stdClass":4:{s:5:"param";s:18:"location-post-type";s:8:"operator";s:6:"equals";s:4:"type";s:6:"select";s:5:"value";s:4:"page";}}}}s:4:"type";s:6:"showif";}}',
+					'tags'        => [ 'text', 'lorem ipsum' ],
+					'priority'    => 20,
 				],
-				[
-						'post_title'   => __( 'Simple php snippet: Disable emojis', 'insert-php' ),
-						'post_name'    => 'simple-php-snippet',
-						'post_content' => self::get_simple_php_snippet(),
-						'meta'         => [
-								'type'        => WINP_SNIPPET_TYPE_PHP,
-								'description' => __( 'Emojis are little icons used to express ideas or emotions. While these icons are fun and all, are they really necessary for your WordPress site? This snippet to disable emojis on your site to make it faster.', 'insert-php' ),
-								'tags'        => [ 'php', 'disable features' ],
-								'priority'    => 30,
-						],
+			],
+			[
+				'post_title'   => __( 'Simple php snippet: Disable emojis', 'insert-php' ),
+				'post_name'    => 'simple-php-snippet',
+				'post_content' => self::get_simple_php_snippet(),
+				'meta'         => [
+					'type'        => WINP_SNIPPET_TYPE_PHP,
+					'description' => __( 'Emojis are little icons used to express ideas or emotions. While these icons are useful, they may not be necessary for your WordPress site. Use this snippet to disable emojis on your site and make it faster.', 'insert-php' ),
+					'tags'        => [ 'php', 'disable features' ],
+					'priority'    => 30,
 				],
-				[
-						'post_title'   => __( 'Add Facebook Pixel to the Order success page', 'insert-php' ),
-						'post_name'    => 'simple-uni-snippet-for-woocommerce',
-						'post_content' => self::get_woo_snippet(),
-						'meta'         => [
-								'type'        => WINP_SNIPPET_TYPE_UNIVERSAL,
-								'description' => __( 'Add Facebook Pixel to the Order success page.', 'insert-php' ),
-								'filters'     => 'a:1:{i:0;O:8:"stdClass":2:{s:10:"conditions";a:1:{i:0;O:8:"stdClass":2:{s:4:"type";s:5:"scope";s:10:"conditions";a:1:{i:0;O:8:"stdClass":4:{s:5:"param";s:18:"location-some-page";s:8:"operator";s:6:"equals";s:4:"type";s:6:"select";s:5:"value";s:16:"woo_checkout_pay";}}}}s:4:"type";s:6:"showif";}}',
-								'tags'        => [ 'woocommerce' ],
-								'priority'    => 40,
-						],
+			],
+			[
+				'post_title'   => __( 'Add Facebook Pixel to the Order success page', 'insert-php' ),
+				'post_name'    => 'simple-uni-snippet-for-woocommerce',
+				'post_content' => self::get_woo_snippet(),
+				'meta'         => [
+					'type'        => WINP_SNIPPET_TYPE_UNIVERSAL,
+					'description' => __( 'Add Facebook Pixel to the Order success page.', 'insert-php' ),
+					'filters'     => 'a:1:{i:0;O:8:"stdClass":2:{s:10:"conditions";a:1:{i:0;O:8:"stdClass":2:{s:4:"type";s:5:"scope";s:10:"conditions";a:1:{i:0;O:8:"stdClass":4:{s:5:"param";s:18:"location-some-page";s:8:"operator";s:6:"equals";s:4:"type";s:6:"select";s:5:"value";s:16:"woo_checkout_pay";}}}}s:4:"type";s:6:"showif";}}',
+					'tags'        => [ 'woocommerce' ],
+					'priority'    => 40,
 				],
+			],
 		];
 
 		foreach ( $posts as $post ) {
 			// '@' here is to hide unexpected output while plugin activation
-			$post_id = @wp_insert_post( [
+			$post_id = @wp_insert_post(
+				[
 					'post_content' => $post['post_content'],
 					'post_title'   => $post['post_title'],
 					'post_status'  => 'publish',
 					'post_type'    => WINP_SNIPPETS_POST_TYPE,
-			] );
+				] 
+			);
 
 			if ( ! is_wp_error( $post_id ) ) {
 				if ( isset( $post['meta']['type'] ) ) {
-					WINP_Helper::updateMetaOption( $post_id, 'snippet_type', $post['meta']['type'] );
+					self::updateMetaOption( $post_id, 'snippet_type', $post['meta']['type'] );
 
 					if ( $post['meta']['type'] == WINP_SNIPPET_TYPE_PHP ) {
-						WINP_Helper::updateMetaOption( $post_id, 'snippet_scope', 'evrywhere' );
+						self::updateMetaOption( $post_id, 'snippet_scope', 'evrywhere' );
 					}
 					if ( $post['meta']['type'] == WINP_SNIPPET_TYPE_TEXT ) {
-						WINP_Helper::updateMetaOption( $post_id, 'snippet_scope', 'shortcode' );
+						self::updateMetaOption( $post_id, 'snippet_scope', 'shortcode' );
 					}
 					if ( $post['meta']['type'] == WINP_SNIPPET_TYPE_UNIVERSAL ) {
-						WINP_Helper::updateMetaOption( $post_id, 'snippet_scope', 'auto' );
-						WINP_Helper::updateMetaOption( $post_id, 'snippet_location', 'header' );
+						self::updateMetaOption( $post_id, 'snippet_scope', 'auto' );
+						self::updateMetaOption( $post_id, 'snippet_location', 'header' );
 					}
 				}
 
 				if ( isset( $post['meta']['description'] ) ) {
-					WINP_Helper::updateMetaOption( $post_id, 'snippet_description', $post['meta']['description'] );
+					self::updateMetaOption( $post_id, 'snippet_description', $post['meta']['description'] );
 				}
 
 				if ( isset( $post['meta']['filters'] ) && is_serialized( $post['meta']['filters'] ) ) {
 					$unserialized_filters = unserialize( $post['meta']['filters'] );
-					WINP_Helper::updateMetaOption( $post_id, 'snippet_filters', $unserialized_filters );
-					WINP_Helper::updateMetaOption( $post_id, 'changed_filters', 1 );
+					self::updateMetaOption( $post_id, 'snippet_filters', $unserialized_filters );
+					self::updateMetaOption( $post_id, 'changed_filters', 1 );
 				}
 
 				if ( isset( $post['meta']['tags'] ) && ! empty( $post['meta']['tags'] ) ) {
@@ -483,12 +452,12 @@ class WINP_Helper {
 				}
 
 				if ( isset( $post['meta']['priority'] ) ) {
-					WINP_Helper::updateMetaOption( $post_id, 'snippet_priority', $post['meta']['priority'] );
+					self::updateMetaOption( $post_id, 'snippet_priority', $post['meta']['priority'] );
 				}
 			}
 		}
 
-		update_option( WINP_Plugin::app()->getOptionName( 'demo_snippets_created' ), 1 );
+		update_option( 'wbcr_inp_demo_snippets_created', 1 );
 	}
 
 	/**
@@ -497,10 +466,10 @@ class WINP_Helper {
 	 * @return string
 	 */
 	protected static function get_simple_php_snippet() {
-		$output = "/**" . PHP_EOL;
-		$output .= "* Disable WP 4.2 emoji" . PHP_EOL;
-		$output .= "*/" . PHP_EOL;
-		$output .= "function ace_remove_emoji() {" . PHP_EOL;
+		$output  = '/**' . PHP_EOL;
+		$output .= '* Disable WP 4.2 emoji' . PHP_EOL;
+		$output .= '*/' . PHP_EOL;
+		$output .= 'function ace_remove_emoji() {' . PHP_EOL;
 		$output .= "\tadd_filter( 'emoji_svg_url', '__return_false' );" . PHP_EOL;
 		$output .= "\tremove_action( 'admin_print_styles', 'print_emoji_styles' );" . PHP_EOL;
 		$output .= "\tremove_action( 'wp_head', 'print_emoji_detection_script', 7 );" . PHP_EOL;
@@ -511,15 +480,15 @@ class WINP_Helper {
 		$output .= "\tremove_filter( 'comment_text_rss', 'wp_staticize_emoji' );" . PHP_EOL;
 		$output .= "\t// filter to remove TinyMCE emojis" . PHP_EOL;
 		$output .= "\tadd_filter( 'tiny_mce_plugins', 'ace_disable_emoji_tinymce' );" . PHP_EOL;
-		$output .= "}" . PHP_EOL;
+		$output .= '}' . PHP_EOL;
 		$output .= "add_action( 'init', 'ace_remove_emoji' );" . PHP_EOL;
-		$output .= "/**" . PHP_EOL;
-		$output .= "* Remove tinyMCE emoji" . PHP_EOL;
-		$output .= "*/" . PHP_EOL;
-		$output .= "function ace_disable_emoji_tinymce( \$plugins ) {" . PHP_EOL;
+		$output .= '/**' . PHP_EOL;
+		$output .= '* Remove tinyMCE emoji' . PHP_EOL;
+		$output .= '*/' . PHP_EOL;
+		$output .= 'function ace_disable_emoji_tinymce( $plugins ) {' . PHP_EOL;
 		$output .= "\tunset( \$plugins['wpemoji'] );" . PHP_EOL;
 		$output .= "\treturn \$plugins;" . PHP_EOL;
-		$output .= "}" . PHP_EOL;
+		$output .= '}' . PHP_EOL;
 
 		return $output;
 	}
@@ -530,8 +499,8 @@ class WINP_Helper {
 	 * @return string
 	 */
 	protected static function get_simple_text_snippet() {
-		$output = '<h3>What is Lorem Ipsum?</h3>Lorem Ipsum is simply dummy text of the printing and typesetting industry. Lorem Ipsum has been the industry\'s standard dummy text ever since the 1500s, when an unknown printer took a galley of type and scrambled it to make a type specimen book. It has survived not only five centuries, but also the leap into electronic typesetting, remaining essentially unchanged. It was popularised in the 1960s with the release of Letraset sheets containing Lorem Ipsum passages, and more recently with desktop publishing software like Aldus PageMaker including versions of Lorem Ipsum.';
-		$output .= PHP_EOL . "{{SNIPPET_CONTENT}}" . PHP_EOL;
+		$output  = '<h3>What is Lorem Ipsum?</h3>Lorem Ipsum is simply dummy text of the printing and typesetting industry. Lorem Ipsum has been the industry\'s standard dummy text ever since the 1500s, when an unknown printer took a galley of type and scrambled it to make a type specimen book. It has survived not only five centuries, but also the leap into electronic typesetting, remaining essentially unchanged. It was popularised in the 1960s with the release of Letraset sheets containing Lorem Ipsum passages, and more recently with desktop publishing software like Aldus PageMaker including versions of Lorem Ipsum.';
+		$output .= PHP_EOL . '{{SNIPPET_CONTENT}}' . PHP_EOL;
 
 		return $output;
 	}
@@ -542,15 +511,15 @@ class WINP_Helper {
 	 * @return string
 	 */
 	protected static function get_simple_universal_snippet() {
-		$output = "<!-- Global Site Tag (gtag.js) - Google Analytics -->" . PHP_EOL;
-		$output .= "<script async src=\"https://www.googletagmanager.com/gtag/js?id=GA_TRACKING_ID\"></script>" . PHP_EOL;
-		$output .= "<script>" . PHP_EOL;
+		$output  = '<!-- Global Site Tag (gtag.js) - Google Analytics -->' . PHP_EOL;
+		$output .= '<script async src="https://www.googletagmanager.com/gtag/js?id=GA_TRACKING_ID"></script>' . PHP_EOL;
+		$output .= '<script>' . PHP_EOL;
 		$output .= "\twindow.dataLayer = window.dataLayer || [];" . PHP_EOL;
 		$output .= "\tfunction gtag(){dataLayer.push(arguments);}" . PHP_EOL;
 		$output .= "\tgtag('js', new Date());" . PHP_EOL;
 		$output .= "\tgtag('config', 'GA_TRACKING_ID');" . PHP_EOL;
-		$output .= "</script>" . PHP_EOL;
-		$output .= "<!-- End global Site Tag (gtag.js) - Google Analytics -->" . PHP_EOL;
+		$output .= '</script>' . PHP_EOL;
+		$output .= '<!-- End global Site Tag (gtag.js) - Google Analytics -->' . PHP_EOL;
 
 		return $output;
 	}
@@ -561,7 +530,7 @@ class WINP_Helper {
 	 * @return string
 	 */
 	protected static function get_woo_snippet() {
-		$output = <<<SCRIPT
+		$output = <<<'SCRIPT'
 <script type="text/javascript">
     var pixel_id = ''; // Add you FB pixel ID!
     !function (f, b, e, v, n, t, s) {
@@ -587,64 +556,29 @@ SCRIPT;
 	 * @param $name
 	 * @param $obj
 	 */
+	/**
+	 * Register a shortcode class
+	 *
+	 * @param string $name Shortcode class name.
+	 * @param object $obj  Plugin object.
+	 *
+	 * @return void
+	 */
 	public static function register_shortcode( $name, $obj ) {
-		Wbcr_FactoryShortcodes335::register( $name, $obj );
-	}
-
-	/**
-	 * Wrapper for get factory class for container
-	 *
-	 * @return string
-	 */
-	public static function get_factory_class() {
-		return "factory-bootstrap-477 factory-fontawesome-000";
-	}
-
-	/**
-	 * Wrapper for Wbcr_FactoryForms475_OptionsValueProvider object
-	 *
-	 * @param $plugin
-	 *
-	 * @return Wbcr_FactoryForms475_OptionsValueProvider
-	 */
-	public static function get_options_value_provider( $plugin ) {
-		return new Wbcr_FactoryForms475_OptionsValueProvider( $plugin );
-	}
-
-	/**
-	 * Wrapper for get factory form object
-	 *
-	 * @param $options
-	 * @param $plugin
-	 *
-	 * @return Wbcr_FactoryForms475_Form
-	 */
-	public static function get_factory_form( $options, $plugin ) {
-		return new Wbcr_FactoryForms475_Form( $options, $plugin );
-	}
-
-	/**
-	 * Wrapper for register factory metaboxes
-	 *
-	 * @param $class_name_or_object
-	 * @param $post_type
-	 * @param $plugin
-	 */
-	public static function register_factory_metaboxes( $class_name_or_object, $post_type, $plugin ) {
-		Wbcr_FactoryMetaboxes415::registerFor( $class_name_or_object, $post_type, $plugin );
+		if ( class_exists( $name ) ) {
+			new $name( $obj );
+		}
 	}
 
 	/**
 	 * Render html for purchase button
 	 */
 	public static function get_purchase_button( $utm_tracking_location = 'snippet-library-page' ) {
-		$price_url = WINP_Plugin::app()->get_support()->get_pricing_url( true, $utm_tracking_location );
-		$price     = WINP_Plugin::app()->premium->get_price();
-		$price     = empty( $price ) ? 19 : $price;
+		$price_url = tsdk_utmify( WINP_UPGRADE, 'upsell_button', $utm_tracking_location );
 		?>
 		<p class="winp-purchase-button">
-			<a class="button" id="winp-library-buy-button" href="<?php echo esc_url( $price_url ) ?>" target="_blank">
-				<span><?php echo __( 'Purchase premium for', 'insert-php' ) . ' $' . esc_attr( $price ); ?></span>
+			<a class="button" id="winp-library-buy-button" href="<?php echo esc_url( $price_url ); ?>" target="_blank">
+				<span><?php _e( 'Upgrade to Pro', 'insert-php' ); ?></span>
 			</a>
 		</p>
 		<?php
@@ -652,7 +586,7 @@ SCRIPT;
 
 	/**
 	 * Check if current user is admin or editor
-	 * todo: удалить этот метод, потому что он дублирует функционал WINP_Plugin::app()->currentUserCan
+	 * todo: удалить этот метод, потому что он дублирует функционал WINP_Plugin::app()->current_user_car
 	 *
 	 * @return bool
 	 */
@@ -661,10 +595,10 @@ SCRIPT;
 	}
 
 	/*
-     * Flushes as many page cache plugin's caches as possible.
-     *
-     * @return void
-     */
+	 * Flushes as many page cache plugin's caches as possible.
+	 *
+	 * @return void
+	 */
 	public static function flush_page_cache() {
 		if ( function_exists( 'wp_cache_clear_cache' ) ) {
 			if ( is_multisite() ) {
@@ -673,25 +607,25 @@ SCRIPT;
 			} else {
 				wp_cache_clear_cache();
 			}
-		} else if ( has_action( 'cachify_flush_cache' ) ) {
+		} elseif ( has_action( 'cachify_flush_cache' ) ) {
 			do_action( 'cachify_flush_cache' );
-		} else if ( function_exists( 'w3tc_pgcache_flush' ) ) {
+		} elseif ( function_exists( 'w3tc_pgcache_flush' ) ) {
 			w3tc_pgcache_flush();
-		} else if ( function_exists( 'wp_fast_cache_bulk_delete_all' ) ) {
+		} elseif ( function_exists( 'wp_fast_cache_bulk_delete_all' ) ) {
 			wp_fast_cache_bulk_delete_all();
-		} else if ( class_exists( 'WpFastestCache' ) ) {
+		} elseif ( class_exists( 'WpFastestCache' ) ) {
 			$wpfc = new WpFastestCache();
 			$wpfc->deleteCache();
-		} else if ( class_exists( 'c_ws_plugin__qcache_purging_routines' ) ) {
+		} elseif ( class_exists( 'c_ws_plugin__qcache_purging_routines' ) ) {
 			c_ws_plugin__qcache_purging_routines::purge_cache_dir(); // quick cache
-		} else if ( class_exists( 'zencache' ) ) {
+		} elseif ( class_exists( 'zencache' ) ) {
 			zencache::clear();
-		} else if ( class_exists( 'comet_cache' ) ) {
+		} elseif ( class_exists( 'comet_cache' ) ) {
 			comet_cache::clear();
-		} else if ( class_exists( 'WpeCommon' ) ) {
+		} elseif ( class_exists( 'WpeCommon' ) ) {
 			// WPEngine cache purge/flush methods to call by default
 			$wpe_methods = [
-					'purge_varnish_cache',
+				'purge_varnish_cache',
 			];
 
 			// More agressive clear/flush/purge behind a filter
@@ -707,9 +641,9 @@ SCRIPT;
 					WpeCommon::$wpe_method();
 				}
 			}
-		} else if ( function_exists( 'sg_cachepress_purge_cache' ) ) {
+		} elseif ( function_exists( 'sg_cachepress_purge_cache' ) ) {
 			sg_cachepress_purge_cache();
-		} else if ( file_exists( WP_CONTENT_DIR . '/wp-cache-config.php' ) && function_exists( 'prune_super_cache' ) ) {
+		} elseif ( file_exists( WP_CONTENT_DIR . '/wp-cache-config.php' ) && function_exists( 'prune_super_cache' ) ) {
 			// fallback for WP-Super-Cache
 			global $cache_path;
 			if ( is_multisite() ) {
@@ -728,16 +662,15 @@ SCRIPT;
 	 *
 	 * @return string
 	 * @since 2.4.0
-	 *
 	 */
 	public static function get_where_use_text( $post ) {
 		global $winp_snippets_locations;
 		$snippet_scope = self::getMetaOption( $post->ID, 'snippet_scope' );
-		$result        = "";
+		$result        = '';
 
 		if ( $snippet_scope == 'evrywhere' ) {
 			$result = __( 'Run everywhere', 'insert-php' );
-		} else if ( $snippet_scope == 'auto' ) {
+		} elseif ( $snippet_scope == 'auto' ) {
 			$items = $winp_snippets_locations->getList();
 
 			$snippet_location = self::getMetaOption( $post->ID, 'snippet_location', '' );
@@ -776,10 +709,12 @@ SCRIPT;
 	public static function get_next_snippet_priority() {
 		global $wpdb;
 
-		$max_priority = $wpdb->get_var( "
+		$max_priority = $wpdb->get_var(
+			"
 			SELECT MAX(CAST(meta_value AS UNSIGNED))
 			FROM {$wpdb->postmeta}
-			WHERE meta_key = '" . WINP_Plugin::app()->getPrefix() . "snippet_priority'" );
+			WHERE meta_key = 'wbcr_inp_snippet_priority'" 
+		);
 
 		if ( is_null( $max_priority ) ) {
 			$max_priority = 0;
@@ -798,5 +733,4 @@ SCRIPT;
 	public static function is_woo_active() {
 		return is_plugin_active( 'woocommerce/woocommerce.php' );
 	}
-
 }

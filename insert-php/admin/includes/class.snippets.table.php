@@ -2,11 +2,8 @@
 /**
  * This class is implemented page: snippet table
  *
- * @author        Webcraftic <wordpress.webraftic@gmail.com>
  * @since         1.0.0
  * @package       core
- * @copyright (c) 2019, OnePress Ltd
- *                s
  */
 
 // Exit if accessed directly
@@ -15,11 +12,11 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 if ( ! class_exists( 'WP_List_Table' ) ) {
-	require_once ABSPATH . 'wp-admin/includes/class-wp-list-table.php' ;
+	require_once ABSPATH . 'wp-admin/includes/class-wp-list-table.php';
 }
 
 /************************** CREATE A PACKAGE CLASS *****************************
- *******************************************************************************
+ * ******************************************************************************
  * Create a new list table package that extends the core WP_List_Table class.
  * WP_List_Table contains most of the framework for generating the table, but we
  * need to define and override some methods so that our data can be displayed
@@ -64,7 +61,6 @@ class WINP_Snippet_Library_Table extends WP_List_Table {
 	 * @var array
 	 *
 	 * Array contains slug columns that you want hidden
-	 *
 	 */
 	private $hidden_columns = [
 		'id',
@@ -91,11 +87,13 @@ class WINP_Snippet_Library_Table extends WP_List_Table {
 		$this->common = true;
 
 		// Set parent defaults
-		parent::__construct( [
-			'singular' => 'snippet',  // singular name of the listed records
-			'plural'   => 'snippets', // plural name of the listed records
-			'ajax'     => true,       // does this table support ajax?
-		] );
+		parent::__construct(
+			[
+				'singular' => 'snippet',  // singular name of the listed records
+				'plural'   => 'snippets', // plural name of the listed records
+				'ajax'     => true,       // does this table support ajax?
+			] 
+		);
 	}
 
 	/** ************************************************************************
@@ -152,22 +150,34 @@ class WINP_Snippet_Library_Table extends WP_List_Table {
 	 * should be an associative array formatted as 'slug'=>'link html' - and you
 	 * will need to generate the URLs yourself. You could even ensure the links
 	 *
-	 *
 	 * @param array $item   A singular item (one full row's worth of data)
 	 *
 	 * @return string Text to be placed inside the column <td> (movie title only)
-	 **************************************************************************@see WP_List_Table::::single_row_columns()
+	 * *************************************************************************@see WP_List_Table::::single_row_columns()
 	 */
 	public function column_title( $item ) {
-		//Build row actions
-		$actions = [/*'edit'   => sprintf( '<a href="?page=%s&action=%s&movie=%s">Edit</a>', $_REQUEST['page'], 'edit', $item['ID'] ),
+		// Build row actions
+		$actions = [/*
+		'edit'   => sprintf( '<a href="?page=%s&action=%s&movie=%s">Edit</a>', $_REQUEST['page'], 'edit', $item['ID'] ),
 			'delete' => sprintf( '<a href="?page=%s&action=%s&movie=%s">Delete</a>', $_REQUEST['page'], 'delete', $item['ID'] ),*/
 		];
 
 		$url = admin_url() . 'post-new.php?post_type=' . WINP_SNIPPETS_POST_TYPE . '&winp_item=' . $item['type'] . '&snippet_id=' . $item['ID'] . ( $this->common ? '&common=1' : '' );
 
-		//Return the title contents
-		return sprintf( '<a href="%1$s"><b>%2$s</b></a>%3$s', /*$1%s*/ esc_url( $url ), /*$2%s*/ esc_html( $item['title'] ), /*$3%s*/ $this->row_actions( $actions ) );
+		// Add premium badge if snippet is locked.
+		$premium_badge = '';
+		$is_locked     = ! empty( $item['is_premium_locked'] );
+		
+		if ( $is_locked ) {
+			$premium_badge = ' <span style="display:inline-block;background:#6366f1;color:#fff;font-size:11px;padding:2px 8px;border-radius:3px;font-weight:600;margin-left:6px;">PRO</span>';
+		}
+
+		// Return the title contents - no link for locked premium snippets.
+		if ( $is_locked ) {
+			return sprintf( '<b>%1$s</b>%2$s%3$s', /*$1%s*/ esc_html( $item['title'] ), /*$2%s*/ $premium_badge, /*$3%s*/ $this->row_actions( $actions ) );
+		}
+		
+		return sprintf( '<a href="%1$s"><b>%2$s</b></a>%3$s%4$s', /*$1%s*/ esc_url( $url ), /*$2%s*/ esc_html( $item['title'] ), /*$3%s*/ $premium_badge, /*$4%s*/ $this->row_actions( $actions ) );
 	}
 
 	/** ************************************************************************
@@ -178,11 +188,13 @@ class WINP_Snippet_Library_Table extends WP_List_Table {
 	 * @param array $item   A singular item (one full row's worth of data)
 	 *
 	 * @return string Text to be placed inside the column <td> (movie title only)
-	 **************************************************************************@see WP_List_Table::::single_row_columns()
+	 * *************************************************************************@see WP_List_Table::::single_row_columns()
 	 */
 	public function column_cb( $item ) {
-		return sprintf( '<input type="checkbox" name="%1$s[]" value="%2$s" />', /*$1%s*/ esc_attr( $this->_args['singular'] ),  //Let's simply repurpose the table's singular label ("movie")
-			/*$2%s*/ esc_attr( $item['ID'] )                //The value of the checkbox should be the record's id
+		return sprintf(
+			'<input type="checkbox" name="%1$s[]" value="%2$s" />', /*$1%s*/
+			esc_attr( $this->_args['singular'] ),  // Let's simply repurpose the table's singular label ("movie")
+			/*$2%s*/ esc_attr( $item['ID'] )                // The value of the checkbox should be the record's id
 		);
 	}
 
@@ -197,7 +209,7 @@ class WINP_Snippet_Library_Table extends WP_List_Table {
 	 * bulk actions or checkboxes, simply leave the 'cb' entry out of your array.
 	 *
 	 * @return array An associative array containing column information: 'slugs'=>'Visible Titles'
-	 **************************************************************************@see WP_List_Table::::single_row_columns()
+	 * *************************************************************************@see WP_List_Table::::single_row_columns()
 	 */
 	public function get_columns() {
 		$columns          = [// 'cb'     => '<input type="checkbox" />', //Render a checkbox instead of text
@@ -236,7 +248,7 @@ class WINP_Snippet_Library_Table extends WP_List_Table {
 	 **************************************************************************/
 	public function get_sortable_columns() {
 		$sortable_columns = [
-			'title'    => [ 'title', false ],     //true means it's already sorted
+			'title'    => [ 'title', false ],     // true means it's already sorted
 			'type'     => [ 'type', false ],
 			'datetime' => [ 'datetime', false ],
 		];
@@ -259,7 +271,7 @@ class WINP_Snippet_Library_Table extends WP_List_Table {
 	 * @return array An associative array containing all the bulk actions: 'slugs'=>'Visible Titles'
 	 **************************************************************************/
 	public function get_bulk_actions() {
-		$actions = [//'sync' => __( 'Synchronization', 'insert-php' ),
+		$actions = [// 'sync' => __( 'Synchronization', 'insert-php' ),
 		];
 
 		return $actions;
@@ -274,8 +286,9 @@ class WINP_Snippet_Library_Table extends WP_List_Table {
 	 **************************************************************************/
 	public function process_bulk_action() {
 
-		//Detect when a bulk action is being triggered...
-		/*if ( 'sync' === $this->current_action() ) {
+		// Detect when a bulk action is being triggered...
+		/*
+		if ( 'sync' === $this->current_action() ) {
 			wp_die( 'Synchronization' );
 		}*/
 	}
@@ -289,7 +302,7 @@ class WINP_Snippet_Library_Table extends WP_List_Table {
 	 */
 	private function get_video_id( $video_link ) {
 		// youtube regex
-		preg_match( "#([\/|\?|&]vi?[\/|=]|youtu\.be\/|embed\/)([a-zA-Z0-9_-]+)#", $video_link, $matches );
+		preg_match( '#([\/|\?|&]vi?[\/|=]|youtu\.be\/|embed\/)([a-zA-Z0-9_-]+)#', $video_link, $matches );
 
 		return ! empty( $matches ) ? end( $matches ) : false;
 	}
@@ -303,9 +316,9 @@ class WINP_Snippet_Library_Table extends WP_List_Table {
 		$data       = [];
 		$saved_data = [];
 
-		$orderby = WINP_Plugin::app()->request->request( 'orderby', 'datetime', true );
-		$order   = WINP_Plugin::app()->request->request( 'order', 'desc', true );
-		$paged   = WINP_Plugin::app()->request->request( 'paged', 1, 'intval' );
+		$orderby = WINP_HTTP::request( 'orderby', 'datetime', true );
+		$order   = WINP_HTTP::request( 'order', 'desc', true );
+		$paged   = WINP_HTTP::request( 'paged', 1, 'intval' );
 
 		$order_tags = [
 			'title'    => 'title',
@@ -323,14 +336,28 @@ class WINP_Snippet_Library_Table extends WP_List_Table {
 
 		if ( ! empty( $snippets ) ) {
 			foreach ( (array) $snippets as $snippet ) {
+				// Check if snippet is premium and user doesn't have license.
+				$is_premium_locked = $this->common && 
+					isset( $snippet->is_premium ) && 
+					$snippet->is_premium && 
+					! WINP_Plugin::app()->get_api_object()->is_key();
+				
+				// Build Insert button - use different class for premium locked snippets.
+				if ( $is_premium_locked ) {
+					$insert_button = '<a class="wbcr-inp-premium-snippet-button button" href="javascript: void(0)" style="display:inline-flex;align-items:center;justify-content:center;"><span class="dashicons dashicons-plus"></span></a>';
+				} else {
+					$insert_button = '<a class="wbcr-inp-enable-snippet-button button" data-snippet="' . esc_attr( $snippet->id ) . '" data-common="' . ( $this->common ? 1 : 0 ) . '" href="javascript: void(0)" style="display:inline-flex;align-items:center;justify-content:center;"><span class="dashicons dashicons-plus"></span></a>';
+				}
+				
 				$_data = [
-					'ID'       => (int) $snippet->id,
-					'title'    => esc_html( $snippet->title ),
-					'desc'     => esc_html( $snippet->description ),
-					'type'     => $snippet->type->title,
-					'datetime' => date( get_option( 'date_format' ) . ' ' . get_option( 'time_format' ), $snippet->updated_at ),
-					'insert'   => '<a class="wbcr-inp-enable-snippet-button button" data-snippet="' . esc_attr( $snippet->id ) . '" data-common="' . ( $this->common ? 1 : 0 ) . '" href="javascript: void(0)"><span class="dashicons dashicons-plus"></span></a>',
-					'delete'   => '<a class="wbcr-inp-delete-snippet-button button" data-snippet="' . esc_attr( $snippet->id ) . '" href="javascript: void(0)"><span class="dashicons dashicons-no"></span></a>',
+					'ID'                => (int) $snippet->id,
+					'title'             => esc_html( $snippet->title ),
+					'desc'              => esc_html( $snippet->description ),
+					'type'              => $snippet->type->title,
+					'datetime'          => gmdate( get_option( 'date_format' ) . ' ' . get_option( 'time_format' ), $snippet->updated_at ),
+					'insert'            => $insert_button,
+					'delete'            => '<a class="wbcr-inp-delete-snippet-button button" data-snippet="' . esc_attr( $snippet->id ) . '" href="javascript: void(0)"><span class="dashicons dashicons-no"></span></a>',
+					'is_premium_locked' => $is_premium_locked,
 				];
 
 				if ( $this->common ) {
@@ -340,7 +367,7 @@ class WINP_Snippet_Library_Table extends WP_List_Table {
 				$video_id = $this->get_video_id( $snippet->video_link );
 
 				if ( $video_id ) {
-					$_data['preview'] = '<a class="thickbox" href="https://www.youtube.com/embed/' . esc_attr( $video_id ) . '?autoplay=1&rel=0&TB_iframe=true">' . '<img src="' . WINP_PLUGIN_URL . '/admin/assets/img/video.png" class="winp-library-image-preview" data-videoid="' . esc_attr( $video_id ) . '" alt="' . __( 'View the video', 'insert-php' ) . '">' . '</a>';
+					$_data['preview'] = '<a class="thickbox" href="https://www.youtube.com/embed/' . esc_attr( $video_id ) . '?autoplay=1&rel=0&TB_iframe=true"><img src="' . WINP_PLUGIN_URL . '/admin/assets/img/video.png" class="winp-library-image-preview" data-videoid="' . esc_attr( $video_id ) . '" alt="' . __( 'Watch Tutorial Video', 'insert-php' ) . '"></a>';
 				}
 
 				$data[] = $_data;
@@ -355,7 +382,7 @@ class WINP_Snippet_Library_Table extends WP_List_Table {
 				];
 			}
 
-			update_user_meta( get_current_user_id(), WINP_Plugin::app()->getPrefix() . 'current_snippets', $saved_data );
+			update_user_meta( get_current_user_id(), 'wbcr_inp_current_snippets', $saved_data );
 		}
 
 		return $data;
@@ -377,7 +404,7 @@ class WINP_Snippet_Library_Table extends WP_List_Table {
 	 * $this->set_pagination_args(), although the following properties and methods
 	 * are frequently interacted with here...
 	 *
-	 * @param bool  $common   - если true, то выводить общие сниппеты без привязки к пользователю
+	 * @param bool $common   - если true, то выводить общие сниппеты без привязки к пользователю
 	 *
 	 * @global WPDB $wpdb
 	 * @uses $this->_column_headers
@@ -446,7 +473,8 @@ class WINP_Snippet_Library_Table extends WP_List_Table {
 		 * @param $b
 		 *
 		 * @return int
-		 */ /*function usort_reorder( $a, $b ) {
+		 */ /*
+		function usort_reorder( $a, $b ) {
 			$orderby = ( ! empty( $_REQUEST['orderby'] ) ) ? $_REQUEST['orderby'] : 'title'; // If no sort, default to title
 			$order   = ( ! empty( $_REQUEST['order'] ) ) ? $_REQUEST['order'] : 'asc'; // If no order, default to asc
 			$result  = strcmp( $a[ $orderby ], $b[ $orderby ] ); // Determine sort order
@@ -467,7 +495,7 @@ class WINP_Snippet_Library_Table extends WP_List_Table {
 		 *
 		 * ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 		 * ---------------------------------------------------------------------
-		 **********************************************************************/
+		 */
 
 		/**
 		 * REQUIRED for pagination. Let's figure out what page the user is currently
@@ -498,13 +526,15 @@ class WINP_Snippet_Library_Table extends WP_List_Table {
 		/**
 		 * REQUIRED. We also have to register our pagination options & calculations.
 		 */
-		$this->set_pagination_args( [
-			'total_items' => $total_items,
-			'per_page'    => $this->per_page,
-			'total_pages' => ceil( $total_items / $this->per_page ),
-			'orderby'     => WINP_Plugin::app()->request->request( 'orderby', 'title', true ),
-			'order'       => WINP_Plugin::app()->request->request( 'order', 'asc', true ),
-		] );
+		$this->set_pagination_args(
+			[
+				'total_items' => $total_items,
+				'per_page'    => $this->per_page,
+				'total_pages' => ceil( $total_items / $this->per_page ),
+				'orderby'     => WINP_HTTP::request( 'orderby', 'title', true ),
+				'order'       => WINP_HTTP::request( 'order', 'asc', true ),
+			] 
+		);
 	}
 
 	/**
@@ -528,6 +558,38 @@ class WINP_Snippet_Library_Table extends WP_List_Table {
 		echo '<input type="hidden" id="order" name="order" value="' . $this->_pagination_args['order'] . '" />';
 		echo '<input type="hidden" id="orderby" name="orderby" value="' . $this->_pagination_args['orderby'] . '" />';
 		parent::display();
+		
+		// Add premium upsell modal.
+		if ( $this->common ) {
+			?>
+			<div id="winp-premium-snippet-modal" style="display:none;">
+				<div style="position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.7);z-index:100000;display:flex;align-items:center;justify-content:center;">
+					<div style="background:#fff;border-radius:8px;padding:0;max-width:500px;width:90%;position:relative;">
+						<button id="winp-modal-close" style="position:absolute;top:15px;right:15px;background:none;border:none;font-size:24px;cursor:pointer;color:#666;line-height:1;padding:0;width:30px;height:30px;">&times;</button>
+						<div class="winp-upsell-container" style="margin:0;padding:0;">
+							<div class="winp-upsell-card" style="box-shadow:none;">
+								<div class="winp-upsell-icon">
+									<span class="dashicons dashicons-star-filled"></span>
+								</div>
+								<div class="winp-upsell-title">
+									<?php esc_html_e( 'Premium Snippet', 'insert-php' ); ?>
+								</div>
+								<p class="winp-upsell-badge">
+									<?php esc_html_e( 'Pro feature', 'insert-php' ); ?>
+								</p>
+								<p class="winp-upsell-description">
+									<?php esc_html_e( 'This is a premium snippet available only in the Pro version. Upgrade to unlock access to all premium code snippets and advanced features.', 'insert-php' ); ?>
+								</p>
+								<a href="<?php echo esc_url( tsdk_utmify( WINP_UPGRADE, 'snippet_library', 'premium_snippet_upsell' ) ); ?>" class="button button-primary button-large winp-upsell-button" target="_blank">
+									<?php esc_html_e( 'Upgrade to Pro', 'insert-php' ); ?>
+								</a>
+							</div>
+						</div>
+					</div>
+				</div>
+			</div>
+			<?php
+		}
 	}
 
 	/**
@@ -539,7 +601,7 @@ class WINP_Snippet_Library_Table extends WP_List_Table {
 		extract( $this->_args );
 		extract( $this->_pagination_args, EXTR_SKIP );
 		ob_start();
-		$no_placeholder = WINP_Plugin::app()->request->request( 'no_placeholder', '' );
+		$no_placeholder = WINP_HTTP::request( 'no_placeholder', '' );
 		if ( ! empty( $no_placeholder ) ) {
 			$this->display_rows();
 		} else {
@@ -560,7 +622,8 @@ class WINP_Snippet_Library_Table extends WP_List_Table {
 		$response['pagination']['bottom'] = $pagination_bottom;
 		$response['column_headers']       = $headers;
 		if ( isset( $total_items ) ) {
-			$response['total_items_i18n'] = sprintf( _n( '1 item', '%s items', $total_items ), number_format_i18n( $total_items ) );
+			/* translators: %s: Number of items */
+			$response['total_items_i18n'] = sprintf( _n( '%s item', '%s items', $total_items, 'insert-php' ), number_format_i18n( $total_items ) );
 		}
 		if ( isset( $total_pages ) ) {
 			$response['total_pages']      = $total_pages;
@@ -568,5 +631,4 @@ class WINP_Snippet_Library_Table extends WP_List_Table {
 		}
 		die( json_encode( $response ) );
 	}
-
 }

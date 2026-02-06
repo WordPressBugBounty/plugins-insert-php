@@ -1,8 +1,4 @@
 jQuery(document).ready(function ($) {
-    //Export page
-    //$('#bulk-action-selector-top option[value="exportsnp"]').css('color', '#999').prop('disabled', true);
-
-    //
     $("a#winp-snippet-status-switch").on('click', function (e) {
         e.preventDefault();
         var href = $(this);
@@ -53,6 +49,79 @@ jQuery(document).ready(function ($) {
     $("input.wbcr_inp_input_priority").on('keydown', stop_enter);
     $("input.wbcr_inp_input_priority").on('keyup', stop_enter);
     $("input.wbcr_inp_input_priority").on('keypress', stop_enter);
+
+    // Handle click on shortcode input to copy to clipboard
+    $("input.wbcr_inp_shortcode_input").on('click', function (e) {
+        var input = $(this);
+        var value = input.val();
+        
+        // Select the text
+        this.setSelectionRange(0, this.value.length);
+        
+        // Copy to clipboard
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+            // Modern clipboard API
+            navigator.clipboard.writeText(value).then(function() {
+                showCopyNotice(input);
+            }).catch(function(err) {
+                console.error('Failed to copy:', err);
+                fallbackCopy(input);
+            });
+        } else {
+            // Fallback for older browsers
+            fallbackCopy(input);
+        }
+    });
+
+    function fallbackCopy(input) {
+        try {
+            input[0].select();
+            var successful = document.execCommand('copy');
+            if (successful) {
+                showCopyNotice(input);
+            }
+        } catch (err) {
+            console.error('Failed to copy:', err);
+        }
+    }
+
+    function showCopyNotice(input) {
+        // Remove any existing notices
+        $('.winp-copy-notice').remove();
+        
+        // Create and show notice
+        var notice = $('<div class="winp-copy-notice"><span>Copied to clipboard!</span></div>');
+        input.after(notice);
+        
+        // Position the notice
+        notice.css({
+            position: 'absolute',
+            background: '#6366f1',
+            color: '#fff',
+            borderRadius: '3px',
+            fontSize: '12px',
+            zIndex: 1000,
+            whiteSpace: 'nowrap',
+            boxShadow: '0 2px 5px rgba(0,0,0,0.2)',
+            height: '100%',
+            width: '100%'
+        });
+        
+        // Style the span
+        notice.find('span').css({
+            display: 'flex',
+            justifyContent: 'center',
+            alignItems: 'center',
+            height: '100%'
+        });
+        
+        // Fade out and remove after 2 seconds
+        setTimeout(function() {
+            notice.fadeOut(300, function() {
+                notice.remove();
+            });
+        }, 2000);
+    }
 });
 
 function stop_enter(e) {

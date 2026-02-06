@@ -5,9 +5,7 @@
  * Contains methods for executing requests and processing responses.
  * Uses the WINP\JsonMapper\Mapper to convert the response to a convenient object.
  *
- * @author Webcraftic <wordpress.webraftic@gmail.com>
- * @copyright (c) 11.12.2018, Webcraftic
- * @version 1.0
+ * @package Woody_Code_Snippets
  */
 
 // Exit if accessed directly
@@ -17,24 +15,24 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
+/**
+ * WINP_Request class
+ */
 class WINP_Request {
-	//В новых версиях Вуди начиная с 2.2.10 будет обращаться к новой версии API библиотеки сниппетов
-	// это делается для обратной совместимости, чтобы старые версии продолжили работать со старым API
-	//const WINP_REQUEST_URL = 'http://185.75.88.217/v2/woody/'; //тестовая после переноса на другой сервер
+
+	/**
+	 * Base request URL.
+	 */
 	const WINP_REQUEST_URL = 'https://api.woodysnippet.com/v2/woody/';
 
 	/**
 	 * WINP_REQUEST constructor.
 	 */
 	public function __construct() {
-		require_once WINP_PLUGIN_DIR . '/includes/jsonmapper/class-json-mapper.php';
-		require_once WINP_PLUGIN_DIR . '/includes/jsonmapper/exceptions/class-exception.php';
-
-		/*add_filter( 'http_request_args', function ( $parsed_args, $url ) {
-			$parsed_args['sslverify'] = false;
-
-			return $parsed_args;
-		}, 10, 2 );*/
+		// Load GPL-compatible DTO classes.
+		require_once WINP_PLUGIN_DIR . '/admin/includes/dto/class-dto-base.php';
+		require_once WINP_PLUGIN_DIR . '/admin/includes/dto/class-type.php';
+		require_once WINP_PLUGIN_DIR . '/admin/includes/dto/class-snippet.php';
 	}
 
 	/**
@@ -43,7 +41,7 @@ class WINP_Request {
 	 * @return string
 	 */
 	private function get_key() {
-		return WINP_Plugin::app()->premium->get_license()->get_key();
+		return WINP_Plugin::app()->premium->get_key();
 	}
 
 	/**
@@ -73,6 +71,7 @@ class WINP_Request {
 		return [
 			'Authorization' => 'Bearer ' . $this->get_token(),
 			'PluginId'      => $this->get_plugin_id(),
+			'Version'       => 'v2', // That tells server that the user is using SDK, not Freemius.
 		];
 	}
 
@@ -82,14 +81,14 @@ class WINP_Request {
 	 * @return bool
 	 */
 	public function is_key() {
-		return WINP_Plugin::app()->premium->is_activate() && $this->get_key();
+		return WINP_Plugin::app()->premium->is_active() && $this->get_key();
 	}
 
 	/**
 	 * Make POST request with authorization headers and return response
 	 *
 	 * @param string $point
-	 * @param array $args
+	 * @param array  $args
 	 *
 	 * @return array|bool|WP_Error
 	 */
@@ -107,16 +106,22 @@ class WINP_Request {
 	 * Make GET request with authorization headers and return response
 	 *
 	 * @param string $point
-	 * @param array $args
+	 * @param array  $args
 	 *
 	 * @return array|bool|WP_Error
 	 */
 	public function get( $point, $args = [] ) {
-		if ( ! $this->is_key() ) {
+		// Allow common endpoints without authentication.
+		$is_common_endpoint = strpos( $point, 'common' ) === 0;
+		
+		if ( ! $is_common_endpoint && ! $this->is_key() ) {
 			return false;
 		}
 
-		$args['headers'] = $this->get_headers();
+		// Add headers if user has valid license (even for common endpoints).
+		if ( $this->is_key() ) {
+			$args['headers'] = $this->get_headers();
+		}
 
 		return wp_remote_get( self::WINP_REQUEST_URL . $point, $args );
 	}
@@ -125,7 +130,7 @@ class WINP_Request {
 	 * Make PUT request with authorization headers and return response
 	 *
 	 * @param string $point
-	 * @param array $args
+	 * @param array  $args
 	 *
 	 * @return array|bool|WP_Error
 	 */
@@ -214,36 +219,34 @@ class WINP_Request {
 	/**
 	 * Get mapped object by name
 	 *
-	 * @param $json
-	 * @param $object_name
+	 * @param array<string, mixed>|bool|WP_Error $json         Response array from wp_remote_* functions.
+	 * @param string                             $object_name  Class name (e.g., 'WINP_DTO_Snippet').
 	 *
-	 * @return bool|mixed
+	 * @return object|bool Object instance or false on failure.
+	 * @throws Exception If mapping fails.
 	 */
 	public function map_object( $json, $object_name ) {
 		if ( ! $this->check_response( $json ) ) {
-			error_log( 'Snippet api [map_object]: ' . $this->get_response_error( $json ) );
-
 			return false;
 		}
 
-		$body = json_decode( $json['body'] );
+		if ( is_wp_error( $json ) || ! isset( $json['body'] ) ) {
+			return false;
+		}
+
+		$body = json_decode( $json['body'], true );
 
 		if ( ! $this->check_body( $body ) ) {
-			error_log( 'Snippet api [map_objects]: Wrong body' );
-
 			return false;
 		}
 
-		$mapper = new WINP\JsonMapper\Mapper();
-
-		$mapper->bExceptionOnUndefinedProperty = true;
-		$mapper->bExceptionOnMissingData       = true;
-
 		try {
-			return $mapper->map( $body, new $object_name() );
-		} catch ( WINP\JsonMapper\Exception $exception ) {
-			error_log( 'Snippet api [map_object]: ' . $exception->getMessage() );
+			if ( ! method_exists( $object_name, 'from_array' ) ) {
+				throw new Exception( "Class {$object_name} does not have a from_array method" );
+			}
 
+			return $object_name::from_array( $body );
+		} catch ( Exception $exception ) {
 			return false;
 		}
 	}
@@ -251,38 +254,35 @@ class WINP_Request {
 	/**
 	 * Get mapped objects by name
 	 *
-	 * @param $json
-	 * @param $object_name
+	 * @param array<string, mixed>|bool|WP_Error $json         Response array from wp_remote_* functions.
+	 * @param string                             $object_name  Class name (e.g., 'WINP_DTO_Snippet').
 	 *
-	 * @return bool|mixed
+	 * @return array<object>|bool Array of object instances or false on failure.
+	 * @throws Exception If mapping fails.
 	 */
 	public function map_objects( $json, $object_name ) {
 		if ( ! $this->check_response( $json ) ) {
-			error_log( 'Snippet api [map_objects]: ' . $this->get_response_error( $json ) );
-
 			return false;
 		}
 
-		$body = json_decode( $json['body'] );
-
-		if ( ! $this->check_body( $body ) ) {
-			error_log( 'Snippet api [map_objects]: Wrong body' );
-
+		if ( is_wp_error( $json ) || ! isset( $json['body'] ) ) {
 			return false;
 		}
 
-		$mapper = new WINP\JsonMapper\Mapper();
+		$body = json_decode( $json['body'], true );
 
-		$mapper->bExceptionOnUndefinedProperty = true;
-		$mapper->bExceptionOnMissingData       = true;
+		if ( ! is_array( $body ) ) {
+			return false;
+		}
 
 		try {
-			return $mapper->mapArray( $body, [], $object_name );
-		} catch ( WINP\JsonMapper\Exception $exception ) {
-			error_log( 'Snippet api [map_objects]: ' . $exception->getMessage() );
+			if ( ! method_exists( $object_name, 'array_from_json' ) ) {
+				throw new Exception( "Class {$object_name} does not have an array_from_json method" );
+			}
 
+			return $object_name::array_from_json( $body );
+		} catch ( Exception $exception ) {
 			return false;
 		}
 	}
-
 }

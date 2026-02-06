@@ -11,77 +11,126 @@
     padding: 3px 8px 6px;
     border-radius: 3px;
     font-weight: bold;
-    width: 30px;
     text-align: center;
 
-    &.wbcr-inp-type-php {
+    &.wbcr-inp-type-PHP {
       background: #777bb3;
       color: #ffffff;
     }
 
-    &.wbcr-inp-type-text {
+    &.wbcr-inp-type-Text {
       background: #4CAF50;
       color: #fffffd;
     }
 
-    &.wbcr-inp-type-universal {
+    &.wbcr-inp-type-Universal {
       background: #607D8B;
       color: #ffffff;
     }
 
-    &.wbcr-inp-type-css {
+    &.wbcr-inp-type-CSS {
       background: #1572b6;
       color: #ffffff;
     }
 
-    &.wbcr-inp-type-js {
+    &.wbcr-inp-type-JS {
       background: #f7df1e;
       color: #655b0e;
     }
 
-    &.wbcr-inp-type-html {
+    &.wbcr-inp-type-HTML {
       background: #e44d26;
+      color: #fffffd;
+    }
+
+    &.wbcr-inp-type-Advert {
+      background: #26aa5d;
       color: #fffffd;
     }
   }
 }
 
 .winp-snippet-library {
-  p.winp-icon {
-    padding: 10px 0 50px 0;
-    margin-right: 30px;
+  .winp-upsell-container {
+    max-width: 640px;
+    margin: 60px auto;
+    padding: 0 20px;
+  }
 
-    span {
-      font-size: 5em;
-      color: #c5ccd2;
+  .winp-upsell-card {
+    background: #fff;
+    border: 1px solid #e5e7eb;
+    border-radius: 12px;
+    padding: 40px;
+    text-align: center;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  }
+
+  .winp-upsell-icon {
+    width: 64px;
+    height: 64px;
+    background: #6366f1;
+    border-radius: 12px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: 24px;
+
+    .dashicons {
+      font-size: 32px;
+      width: 32px;
+      height: 32px;
+      color: #fff;
     }
   }
 
-  p.winp-header-modal {
-    font-size: 28px;
-    color: #717880;
+  .winp-upsell-title {
+    font-size: 24px;
+    font-weight: 600;
+    margin: 0 0 8px 0;
+    color: #111827;
   }
 
-  p.winp-title-modal {
+  .winp-upsell-badge {
     font-size: 14px;
-    color: #b3b7ba;
-    padding-bottom: 20px;
+    color: #9ca3af;
+    margin: 0 0 20px 0;
+    font-weight: 500;
   }
 
-  .winp-more-padding {
-    padding-top: 100px;
+  .winp-upsell-description {
+    font-size: 16px;
+    color: #6b7280;
+    line-height: 1.6;
+    margin: 0 0 32px 0;
   }
 
-  /*.wbcr-inp-snippet-description {
-    width: 90%;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-  }*/
+  .winp-upsell-button {
+    background: #6366f1 !important;
+    border-color: #6366f1 !important;
+    color: #fff !important;
+    padding: 14px 40px !important;
+    font-size: 18px !important;
+    font-weight: 600;
+    text-decoration: none;
+    display: inline-block;
+    border-radius: 6px;
+    box-shadow: none !important;
+    text-shadow: none !important;
+    height: auto !important;
+    line-height: normal !important;
+
+    &:hover,
+    &:focus {
+      background: #5558e3 !important;
+      border-color: #5558e3 !important;
+      color: #fff !important;
+    }
+  }
 
   table.snippets {
     .column-type {
-      width: 80px;
+      width: 120px;
     }
 
     .column-preview {

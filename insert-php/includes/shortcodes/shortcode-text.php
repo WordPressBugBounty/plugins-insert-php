@@ -15,15 +15,16 @@ class WINP_SnippetShortcodeText extends WINP_SnippetShortcode {
 	/**
 	 * Content render
 	 *
-	 * @param array $attr
+	 * @param array  $attr
 	 * @param string $content
 	 * @param string $tag
 	 */
 	public function html( $attr, $content, $tag ) {
-		$id = $this->getSnippetId( $attr, WINP_SNIPPET_TYPE_TEXT );
+		$id = $this->get_snippet_id( $attr, WINP_SNIPPET_TYPE_TEXT );
 
 		if ( ! $id ) {
-			echo '<span style="color:red">' . __( '[' . esc_html( $tag ) . ']: Text snippets error (not passed the snippet ID)', 'insert-php' ) . '</span>';
+			/* translators: %s: Shortcode tag name */
+			echo '<span style="color:red">' . sprintf( esc_html__( '[%s]: Text snippets error (not passed the snippet ID)', 'insert-php' ), esc_html( $tag ) ) . '</span>';
 
 			return;
 		}
@@ -35,24 +36,28 @@ class WINP_SnippetShortcodeText extends WINP_SnippetShortcode {
 			return;
 		}
 
-		$is_activate   = $this->getSnippetActivate( $snippet_meta );
-		$snippet_scope = $this->getSnippetScope( $snippet_meta );
-		$is_condition  = WINP_Plugin::app()->getExecuteObject()->checkCondition( $id );
+		$is_activate   = $this->get_snippet_activate( $snippet_meta );
+		$snippet_scope = $this->get_snippet_scope( $snippet_meta );
+		$is_condition  = WINP_Plugin::app()->get_execute_object()->checkCondition( $id );
 
 		if ( ! $is_activate || $snippet_scope != 'shortcode' || ! $is_condition ) {
 			return;
 		}
 
+		// Track shortcode execution.
+		WINP_Plugin::app()->get_execute_object()->track_shortcode_snippet( $id );
+
 		$post_content = $snippet->post_content;
-		if ( WINP_Plugin::app()->getOption( 'execute_shortcode' ) ) {
+		if ( get_option( 'wbcr_inp_execute_shortcode' ) ) {
 			$post_content = do_shortcode( $post_content );
 		}
 
 		/**
 		 * Shortcode content filter
+		 *
 		 * @since 2.4.4
 		 */
-		$post_content = apply_filters('wbcr/inp/snippet/shortcode_text/post_content', $post_content, $id);
+		$post_content = apply_filters( 'wbcr/inp/snippet/shortcode_text/post_content', $post_content, $id );
 
 		echo str_replace( '{{SNIPPET_CONTENT}}', $content, $post_content );
 	}

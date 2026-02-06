@@ -1,4 +1,9 @@
 jQuery(document).ready( function($) {
+    // Show premium upsell modal for locked snippets
+    $(document).on('click', '.wbcr-inp-premium-snippet-button', function() {
+        $('#winp-premium-snippet-modal').show();
+    });
+    
     // Импортировать выбранный сниппет из списка
     $( '.wbcr-inp-enable-snippet-button' ).click( function() {
         if ( confirm(winp_snippet_library.is_import) ) {
@@ -23,6 +28,20 @@ jQuery(document).ready( function($) {
                     }
                 }
             );
+        }
+    });
+    
+    // Close premium modal
+    $(document).on('click', '#winp-modal-close', function(e) {
+        e.preventDefault();
+        e.stopPropagation();
+        $('#winp-premium-snippet-modal').hide();
+    });
+    
+    $(document).on('click', '#winp-premium-snippet-modal', function(e) {
+        if (e.target === this) {
+            e.preventDefault();
+            $('#winp-premium-snippet-modal').hide();
         }
     });
 

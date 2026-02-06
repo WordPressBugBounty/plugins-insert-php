@@ -20,10 +20,11 @@ class WINP_SnippetShortcodeJs extends WINP_SnippetShortcode {
 	 * @param string $tag
 	 */
 	public function html( $attr, $content, $tag ) {
-		$id = $this->getSnippetId( $attr, WINP_SNIPPET_TYPE_JS );
+		$id = $this->get_snippet_id( $attr, WINP_SNIPPET_TYPE_JS );
 
 		if ( ! $id ) {
-			echo '<span style="color:red">' . __( '[' . esc_html( $tag ) . ']: PHP snippets error (not passed the snippet ID)', 'insert-php' ) . '</span>';
+			/* translators: %s: Shortcode tag name */
+			echo '<span style="color:red">' . sprintf( esc_html__( '[%s]: PHP snippets error (not passed the snippet ID)', 'insert-php' ), esc_html( $tag ) ) . '</span>';
 
 			return;
 		}
@@ -35,27 +36,29 @@ class WINP_SnippetShortcodeJs extends WINP_SnippetShortcode {
 			return;
 		}
 
-		$attrs = $this->filterAttributes( $attr, $id );
+		$attrs = $this->filter_attributes( $attr, $id );
 
 		// Let users pass arbitrary variables, through shortcode attributes.
 		// @since 2.4.0
-		$vars = "";
+		$vars = '';
 		foreach ( $attrs as $var => $value ) {
-			$vars .= PHP_EOL."var {$var} = \"{$value}\";";
+			$vars .= PHP_EOL . "var {$var} = \"{$value}\";";
 		}
 
 
-		$is_activate     = $this->getSnippetActivate( $snippet_meta );
-		$snippet_content = $this->getSnippetContent( $snippet, $snippet_meta, $id );
-		$snippet_scope   = $this->getSnippetScope( $snippet_meta );
-		$is_condition    = WINP_Plugin::app()->getExecuteObject()->checkCondition( $id );
+		$is_activate     = $this->get_snippet_activate( $snippet_meta );
+		$snippet_content = $this->get_snippet_content( $snippet, $snippet_meta, $id );
+		$snippet_scope   = $this->get_snippet_scope( $snippet_meta );
+		$is_condition    = WINP_Plugin::app()->get_execute_object()->checkCondition( $id );
 
 		if ( ! $is_activate || empty( $snippet_content ) || $snippet_scope != 'shortcode' || ! $is_condition ) {
 			return;
 		}
 
-		echo "<script type='text/javascript'>{$vars}</script>"; //print attributes
+		// Track shortcode execution.
+		WINP_Plugin::app()->get_execute_object()->track_shortcode_snippet( $id );
+
+		echo "<script type='text/javascript'>{$vars}</script>"; // print attributes
 		echo WINP_Execute_Snippet::getJsCssSnippetData( $id );
 	}
-
 }

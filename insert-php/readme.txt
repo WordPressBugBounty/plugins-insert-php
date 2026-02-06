@@ -1,179 +1,211 @@
-=== Woody code snippets - Insert Header Footer Code, AdSense Ads ===
-Contributors: WillBontrager, creativemotion
-Donate link: https://woodysnippet.com
-Tags: code snippets, woocommerce, shortcode, adsense, header
+=== Woody Code Snippets – Insert PHP, CSS, JS, and Header/Footer Scripts ===
+Contributors: themeisle
+Tags: code snippets, header footer scripts, insert php, custom code, snippet
 Requires at least: 5.6
-Tested up to: 6.5
+Tested up to: 6.9
 Requires PHP: 7.0
-Stable tag: trunk
+Stable tag: 2.7.2
 License: GPLv2 or later
 License URI: http://www.gnu.org/licenses/gpl-2.0.html
 
-Insert Headers and Footers, executes PHP code, uses conditional logic to insert ads, text, media content and external service’s code.
+Insert PHP, JavaScript, CSS, HTML, ads, and tracking code into WordPress headers, footers, pages, and content using conditional logic, without editing theme files.
 
 == Description ==
 
-### Need professional support? ###
-[Get starting FREE support](http://forum.webcraftic.com/forums/problems-and-solutions.3/ "Get starting free support")
-[Get starting PREMIUM support](https://webcraftic.com/premium-support/ "Get starting premium support")
+Woody Code Snippets is a WordPress plugin that helps you insert code into your site without editing theme files.
 
-- Stop re-using the same content over and over again!
-- Stop inserting PHP code to function.php!
-- Stop adding google analytics, yandex metrics and external code to header and footer php files!
-- Stop wasting time on changing 100 pages with repeated content!
+Many WordPress users still add PHP, JavaScript, CSS, tracking pixels, or ad scripts directly into functions.php, header.php, or footer.php. This approach breaks easily when themes update and becomes hard to manage as your site grows.
 
-Woody Code Snippets will make your life so much easier. The plugin helps to create and store code snippets or duplicated text in a special library at the admin bar of your website. Use the shortcode to add a snippet anywhere on your website. Or do it automatically, for example: head, footer and post injections.  You can show or hide code snippets using conditional logic.
+Woody solves this by giving you a centralized code snippet manager where you can safely add header scripts, footer scripts, PHP snippets, custom CSS, JavaScript, and HTML from the WordPress admin.
 
-### Why do you need this plugin? ###
+You can use Woody as a header and footer code manager, a PHP snippet plugin, or a way to reuse content and scripts across your site using shortcodes or automatic insertion.
 
-- Insert Headers and Footers
+Each snippet can be enabled or disabled instantly, placed in specific locations like before content or after paragraphs, and shown only when certain conditions are met.
+
+### Quick Links
+
+📘 [Documentation](https://docs.themeisle.com/collection/2410-woody-code-snippets) – Complete setup and configuration guide
+
+💬 [Support Forum](https://wordpress.org/support/plugin/insert-php/) – Community help and expert support
+
+⭐ [Go Pro](https://woodysnippet.com/upgrade/?utm_source=wordpressorg&utm_medium=readme&utm_campaign=woody_quicklinks) – Unlock advanced features and priority support
+
+### What Problems Does Woody Solve?
+
+Woody is built for real WordPress workflows. It helps you:
+
+- Insert code into headers and footers without editing theme files
+- Add analytics scripts, tracking pixels, and ad code safely
+- Manage PHP snippets without touching functions.php
+- Reuse scripts and content across pages using shortcodes
+- Control where code runs using placement rules and conditions
+- Enable, disable, or roll back snippets without breaking your site
+
+Whether you are building client sites, running marketing experiments, or maintaining your own project, Woody gives you control without unnecessary complexity.
+
+### How It Works
+
+Woody lets you create code snippets and control where and when they run, all from the WordPress admin.
+
+#### Example #1 ####
+Create a JavaScript snippet and add your analytics or tracking code.  
+Place it in the site header and add a condition to exclude administrators so your own visits are not tracked.
+
+#### Example #2 ####
+Create a text snippet with reusable content or a shortcode.  
+Add conditions to show it only to logged-in users, then insert it anywhere using the snippet shortcode or automatic placement rules.
+
+This makes it easy to manage repeated logic and content without editing theme files.
+
+### Who Should Use Woody Code Snippets
+
+Woody is designed for:
+
+- Developers who want a structured way to manage custom code
+- Marketers adding analytics, ads, and tracking scripts
+- Solopreneurs who want flexibility without editing theme files
+- Agencies managing multiple sites and shared snippets
+
+If you regularly need to insert code into WordPress, Woody fits naturally into your workflow.
+
+### Supported Snippet Types
+
+Woody supports multiple snippet types, so you can manage all custom code in one place. You can create:
+
+- **PHP snippets** for functions, hooks, classes, and global variables
+- **JavaScript snippets** for analytics, integrations, and interactive features
+- **CSS snippets** to add custom styles without editing theme files
+- **HTML snippets** for markup and layout elements
+- **Text snippets** using the WordPress editor for reusable content
+- **Ad snippets** for ads and banners
+- **Universal snippets** that combine PHP, HTML, CSS, and JavaScript
+
+### Why do you need this plugin?
+
 - Insert Google AdSense Ads, Amazon Native Shopping Contextual Ads, Yandex Direct Ads, Media.net on your website.
 - Insert Google Analytic Tracking code, Yandex Metrika Tracking Code, Yandex Counter to Header, Footer.
 - Insert PHP Code Snippets and execute on your website. Register PHP functions, classes, global variables everywhere.
 - Insert Social media widgets, add any external resources widgets.
 - Insert Facebook Pixels, Facebook Scripts, Facebook og:image Tag, Google Conversion Pixels, Vk Pixels.
-- Show or hide code snippets based on conditional logic.
-- You can save templates of posts or page builders, quotes, and galleries to re-use them on your website.
-- Roll back changes with Code Revisions **[(Premium)](https://woodysnippet.com/pricing/ "Get PRO")**
-- Cloud storage for snippets **[(Premium)](https://woodysnippet.com/pricing/ "Get PRO")**
-- Synchronize snippets between your sites using the cloud (**Coming soon**)
-- Ready-made snippets in our cloud that will help you solve some of your cases (**[Premium](https://woodysnippet.com/pricing/ "Get PRO")**)
 
-### Need premium features? ###
+### Header and Footer Code Management
 
-**[Get Premium version](https://woodysnippet.com/pricing/)**
+Woody works as a full header and footer code manager.
 
-### How It Works? ###
+You can insert snippets:
+- Into the site header before the closing </head> tag  
+- Into the site footer before the closing </body> tag  
 
-#### Example #1 ####
- You create a new javascript snippet and add a code you’d like to place on a website. Html snippet editor provides you with tooltips and highlights errors in syntax. Now you need to define where to put a code. For example, you can place the code in header, footer of all pages. This works great for Google Analytics. Create an additional condition: do not show this code to the administrator. It will prevent from tracking user role.
+Common examples include analytics scripts, tracking pixels, verification tags, and global JavaScript or CSS.
 
-#### Example #2 ####
-You create a text snippet and add a repeated text or a template. You can add a shortcode for the contact form, in case it’s universal for all website pages. Now you can add conditions to show this content to registered users only. Save the text snippet and go to editing pages.  If you use the Gutenberg editor, you need to select a special unit. For the classic editor, click the icon of our plugin and add a shortcode of your new snippet.
-As you can see, working with snippets is super easy!
+### Advanced Placement Options
 
-https://youtu.be/FNoNsl_jy2k
+Beyond headers and footers, Woody lets you insert snippets into specific locations.
 
-### All Plugin Features:###
-* Header footer code manager
-* User-friendly code editor with syntax highlighter.
-* Create rich text ads using a classic WordPress editor TinyMCE.
-* Use shortcodes to place a snippet anywhere on a website.
-* Use a special unit to add a snippet in Gutenberg Editor.
-* You can send content and additional attributes to a snippet using a shortcode or a special unit (Gutenberg Editor).
-* Place post snippets automatically on all pages.
-* Run PHP code everywhere or for a certain shortcode.
-* Use JavaScript, CSS, and HTML code to create code snippets.
-* The Unlimited number of code snippets.
-* Use shortcodes of other plugins.
-* Show or hide code snippets based on conditional logic.
-* Export/Import of code snippets.
+You can place code:
 
-### Where Can You Place a Snippet Automatically? ###
+- Before or after post or page content  
+- Before or after a specific paragraph  
+- Before or after a post  
+- Inside archives, categories, and taxonomy pages  
+- Between posts on archive pages  
 
-**All website:**
+#### WooCommerce Pages
 
-**Insert Headers and Footers on all pages:**
+Woody supports automatic snippet placement on WooCommerce pages.
 
-* Insert Header — code snippet is added to the source code in header before the &lt;/head&gt; tag.
-* Insert Footer — code snippet is added to the source code in footer before the &lt;/body&gt; tag.
+You can insert snippets:
 
-**Insert to Posts, pages, custom posts:**
+- Before or after the product list  
+- Before or after a single product  
+- Before or after the single product summary  
+- After the product title, price, or excerpt  
 
-* Insert ads Before Post — post snippets is added to the source code before the &lt;/head&gt; tag.
-* Insert ads Before Content — page snippets is added before the post/page content.
-* Insert ads Before Paragraph — post snippets is added before a certain paragraph. A paragraph number is listed in the Location number field.
-* Insert ads After Paragraph — post snippets is added after a certain paragraph. A paragraph number is listed in the Location number field.
-* Insert ads After Content — page snippets is added after the post/page content.
-* Insert ads After Post — post snippets is added after the post/page.
+Common use cases include conversion tracking, promotional banners, custom JavaScript, and trust notices.
 
-**Insert to Categories, archives, tags, taxonomy:**
+### Shortcodes and Reusable Content ###
 
-* Insert AdSense Before Excerpt — snippet is added before the post/page preview.
-* Insert AdSense After Excerpt — snippet is added after the post/page preview.
-* Insert AdSense Between Posts — snippet is added between posts.
-* Insert AdSense Before post — snippet is added before a certain post. A post number is listed in the Location number field.
-* Insert AdSense After post — snippet is added after a certain post. A post number is listed in the Location number field.
+Woody supports shortcodes so you can insert snippets exactly where you need them. You can place snippets inside posts, pages, widgets, and page builders.
 
-**Insert to Woocommerce pages: [(Premium)](https://woodysnippet.com/pricing/ "Get PRO")**
+With [Pro](https://woodysnippet.com/upgrade/?utm_source=wordpressorg&utm_medium=readme&utm_campaign=woody_shortcode), you can define custom shortcode names that are readable and portable across sites.  
 
-* Before the list of products — Snippet will be placed before the list of products.
-* After the list of products — Snippet will be placed after the list of products.
-* Before a single product — Snippet will be placed before a single product
-* After a single product — Snippet will be placed after a single product
-* Before a single product summary — Snippet will be placed before a single product summary
-* After a single product summary — Snippet will be placed after a single product summary
-* After a product title — Snippet will be placed after a product title
-* After a product price — Snippet will be placed after a product price
-* After a product excerpt — Snippet will be placed after a product excerpt
+### Conditional Logic for Code Snippets
 
-* Insert AdSense After post — snippet is added after a certain post. A post number is listed in the Location number field.
+Woody allows you to control when a snippet is displayed.
 
-### What Are Conditional Logic Options to Show a Snippet? ###
+[FREE] Available in the free version:
+- User role and registration date  
+- Page, post type, or taxonomy  
+- Referrer or cookie value  
 
-**User:**
-- Role
-- Registration Date
-- Cookie Name
-- Current Page
-- Current Referrer
-**Location:**
-- Post Type
-- Taxonomy page
-- Taxonomy of the page
-- Page
-**Technology [(Premium)](https://woodysnippet.com/pricing/ "Get PRO")**:
-- AddBlocker
-- Browser
-- Use cookie
-- Use JavaScript
-- Operation system
-- Device type
-**Auditory [(Premium)](https://woodysnippet.com/pricing/ "Get PRO")**:
-- User country (Use Webnet77 or MaxMind geo ip base)
-- Viewing depth
-- Attendance by time of day
-- Total number of visits
+[PRO] Advanced conditions available in [Pro](https://woodysnippet.com/upgrade/?utm_source=wordpressorg&utm_medium=readme&utm_campaign=woody_conditions):
+- Device type, browser, and operating system  
+- JavaScript availability or ad blocker detection  
+- User country, visit depth, time of day, and total visits  
 
-#### Recommended our plugins ####
-* [Clearfy - all in one optimization tools](https://wordpress.org/plugins/clearfy/ "Download Clearfy")
-* [Robin Image Optimizer - save money on image compression](https://wordpress.org/plugins/robin-image-optimizer/ "Download Robin Image Optimizer")
-* [Titan Anti-spam & Security - save money on image compression](https://wordpress.org/plugins/anti-spam/ "Download Titan")
+Conditions can be combined using AND and OR logic.
 
-#### NEED SUPPORT, WE GOT YOU COVERED ####
-We provide free support for this plugin. If you are pushed with a problem, just create a new ticket. We will definitely help you!
+Unlock advanced conditions with [Woody Pro](https://woodysnippet.com/upgrade/?utm_source=wordpressorg&utm_medium=readme&utm_campaign=woody_conditions).
 
-1. **[Get starting free support](http://forum.webcraftic.com)**
-2. **[Documentation](https://woodysnippet.com/getting-started-with-woody-ad-snippets/)**
+### Snippet Management and Organization
 
-We are very need for your help with [translating Woody Code Snippets plugin](https://translate.wordpress.org/projects/wp-plugins/insert-php) into your native language. We want to make it international and understandable for everyone. Please contact us via email inside the plugin, or create a topic on our [support forum](http://forum.webcraftic.com) if you can help with the translations. In exchange for your help, we will give you better support and our premium plugins absolutely free!
+Woody includes features to keep snippets organized and easy to manage.
 
-### Setting options ###
-* Keep the HTML entities, don't convert to its character - If you want to use an HTML entity in your code (for example > or "), but the editor keeps on changing them to its equivalent character (> and " for the previous example), then you might want to enable this option.
-* Execute shortcodes in snippets - Execute shortcodes in the snippet code before executing the snippet.
-* Complete Uninstall - When the plugin is deleted from the Plugins menu, also delete all snippets and plugin settings.
-* Support old shortcodes [insert_php] - If you used our plugin from version 1.3.0, then you could use the old shortcodes [insert_php][/insert_php]; from version 2.2.0 we disabled this type of shortcodes by default, as their use is not safe. If you still want to execute your php code via [insert_php][/insert_php] shortcodes, you can enable this option.
-#### Code Editor ####
-* Code style - The optional feature. You can customize the code style in the snippet editor. The "Default" style is applied by default.
-* Indent With Tabs - The optional feature. Whether, when indenting, the first N*tabSize spaces should be replaced by N tabs. The default is false.
-* Tab Size - The optional feature. Pressing Tab in the code editor increases left indent to N spaces. N is a number pre-defined by you.
-* Indent Unit - The optional feature. The indent for code lines (units). Example: select a snippet, press Tab. The left indent in the selected code increases to N spaces. N is a number pre-defined by you.
-* Wrap Lines - The optional feature. If ON, the editor will wrap long lines. Otherwise, it will create a horizontal scroll.
-* Line Numbers - The optional feature. If ON, all lines in the editor will be numbered.
-* Auto Close Brackets - The optional feature. If ON, the editor will automatically close opened quotes or brackets. Sometimes, it speeds up coding.
-* Highlight Selection Matches - The optional feature. If ON, it searches for matches for the selected variable/function name. Highlight matches with green. Improves readability.
-#### Geolocation ####
-IP geolocation database (Webnet77 or MaxMind) - Select IP geolocation database
+You can:
+- Enable or disable snippets instantly  
+- Control execution order using priorities  
+- Tag and clone snippets  
+- Import and export snippets between sites
 
-### Use this plugin with care! ###
-ATTENTION! Check your php scripts before inserting on your site. If you don't understand how the php script you are using works, try to avoid using it. Using unverified or outdated php scripts can damage the security of your site! Using the plugin on multisites can be dangerous as it will allow all administrators to insert php, js code. If you cannot control the work of administrators, we recommend that you do not use this plugin for security reasons. We are constantly working to improve the security of the plugin, but unfortunately we cannot check the code scripts you use that may violate the security of your site!
+### Code Revisions and Rollback [PRO] ###
 
-### History, Developers, Credits ###
+With [Pro](https://woodysnippet.com/upgrade/?utm_source=wordpressorg&utm_medium=readme&utm_campaign=woody_restore), Woody automatically saves snippet revisions. You can view previous versions, compare changes, and restore earlier revisions if something goes wrong.  
 
-If you are a long-term user, you may be confused about the new plugin update. You’ve been using an old plugin – Insert php 1.3.0, and now got an extended product – Woody Code Snippets. Insert php was the first plugin version to work with PHP code. It was created by Will Bontrager Software, LLC. In 2018, the Webcraftic studio started to actively develop the plugin. We’ve created a roadmap and released several powerful updates that help you to use PHP code more comfortable and secure. Now plugin supports not only PHP but other snippet types as well. We’ve decided to rename the plugin as Woody Code Snippets. This name is more suitable for new and powerful plugin features.
+This adds an extra layer of safety when working with custom code.
 
-More information about the Insert PHP plugin can be found here:
-http://www.willmaster.com/software/WPplugins/go/iphphome_iphplugin
+### Cloud Templates and Sync [PRO] ###
+
+[Woody Pro](https://woodysnippet.com/upgrade/?utm_source=wordpressorg&utm_medium=readme&utm_campaign=woody_cloud) includes cloud-based snippet templates.
+
+You can save snippets as templates and reuse them across multiple sites, which is especially useful for agencies and developers managing repeated setups.
+
+
+### Settings and Developer Options
+
+Woody includes advanced settings for fine-grained control.
+
+You can:
+
+- Preserve HTML entities without automatic conversion  
+- Execute shortcodes inside snippets  
+- Enable error email notifications  
+- Automatically activate snippets on save  
+- Fully remove plugin data on uninstall  
+
+#### Code Editor
+
+The built-in editor includes:
+- Syntax highlighting and line numbers  
+- Configurable indentation and tab size  
+- Optional line wrapping  
+- Automatic bracket and quote closing  
+- Highlighting of matching variables and functions  
+
+### Use This Plugin Responsibly ###
+
+Woody allows you to run custom PHP, JavaScript, and CSS on your site. Always make sure you understand the code you add. Using unverified or outdated scripts may affect site security or stability. On multisite installations, only trusted administrators should have access to snippet creation.
+
+Woody includes safeguards such as snippet disabling, revisions, and error notifications, but it cannot validate third-party code you choose to run.
+
+### Support ###
+
+Need help? Open a new thread in the WordPress [support forum](https://wordpress.org/support/plugin/insert-php/), and we will be happy to assist.
+
+### Documentation ###
+
+Learn how to make the most of Woody with our detailed and user-friendly [documentation](https://docs.themeisle.com/collection/2410-woody-code-snippets).
+
+Woody is backed by [Themeisle](https://themeisle.com/?utm_source=wordpressorg&utm_medium=readme&utm_campaign=woody), trusted by over 1 million WordPress users worldwide.
 
 == Installation ==
 
@@ -190,7 +222,7 @@ The attribute “simple” is available in the snippet as the $simple variable. 
 
 = The snippet code executed with an error and I cannot change it, what should I do? =
 
-Do not despair! Even an experienced person can make mistakes. We created a secure mode for this case. Go into it and your snippets code will not be executed.
+Don’t worry. Mistakes can happen, even with experienced users. Woody includes a Safe Mode that temporarily disables snippet execution so you can fix the issue.
 
 1. Go to the safe mode by this link: http://your-site-name.dev/wp-admin/?wbcr-php-snippets-safe-mode
 2. Edit the snippet in which you made a mistake;
@@ -212,20 +244,9 @@ The old version of Insert php 1.3.0 worked this way: you wrapped PHP code with s
 We recommend you to move all your code from the post editor to snippets.
 Important! TinyMCE converts double quotes to special characters. So if you place this code on the snippet editor, it may not work. To avoid this problem, replace all special symbols of double quotes in your PHP code with classic double quotes.
 
-= How long are you planning to support the old version 1.3.0? =
-
-60% users have already downloaded 2.x.x version. We are trying to reach the number of 80%. The deadline for support is scheduled for March 1, 2019.
-You can download the old plugin version from [here](https://downloads.wordpress.org/plugin/insert-php.1.3.zip).
-
-= I don’t like the new plugin version. How can I roll back to 1.3.0 and don’t get updates? =
-
-First of all, please, take some time to actually go through the new version. Usually, it takes a week to see how useful this version may be for you. If you’ve faced any problems or found some bugs, feel free to contact us at our [support forum](http://forum.webcraftic.com).
-You can always download the old version (1.3.0) from [here](https://downloads.wordpress.org/plugin/insert-php.1.3.zip).
-To avoid getting updates, open the PHP file wp-content/plugins/insert-php/insert_php.php and change the plugin version to 9.9.9.
-
 = Is there any plugin documentation? =
 
-You can find the detailed documentation in [here](https://woodysnippet.com/getting-started-with-woody-ad-snippets/).
+You can find the detailed documentation in [here](https://docs.themeisle.com/collection/2410-woody-code-snippets).
 
 = Is plugin compatible with GDPR? =
 
@@ -246,21 +267,75 @@ No, the snippets are stored in the WordPress database and are independent of the
 
 = Does plugin work with multisite? =
 
-The plugin doesn’t support multi-sites.
-We will definitely add multisite support in the future. You can speed up this process by leaving a request on our [support forum](http://forum.webcraftic.com).
+The plugin doesn’t support multi-sites setup.
 
 == Screenshots ==
 
-1. Snippets list
-2. Edit php snippet
-3. Code revisions
-4. Setting up automatic placement of snippets
-5. Setting conditional logic to display a snippet
-6. Creating a Snippet for Gutenberg Editor
-7. Adding a snippet shortcode to a text widget
-7. Custom shortcode name
+1. Manage all snippets from one dashboard
+2. Set conditions to control when snippets load
+3. Choose the exact location where the code runs
+4. Catch code errors before they affect your site
+5. Insert snippets directly inside the editor
+6. Compare changes and restore previous versions
+7. Use custom shortcode names for reusing snippets
 
 == Changelog ==
+
+#####   Version 2.7.2 (2026-01-27)
+
+- This release focuses on improving the security and robustness of snippet type handling in the codebase.
+
+
+
+
+#####   Version 2.7.1 (2026-01-21)
+
+- Added a compatibility check for the Woody Pro version during activation to prevent fatal errors.
+
+####   Version 2.7.0 (2026-01-19)
+
+### New Features
+
+- Export and clone functionality now available in free version
+- Active snippets menu item for better snippet management
+- New feature to receive emails during fatal error caused by snippets
+- New Improved Plugin UI.
+- Non-premium snippets can now be accessed via API
+- Use IPHub as Geolocation Tool. [PRO]
+
+### Enhancements
+
+- Improved PHP code validation before saving
+- Better Location terminology for improved clarity
+- Added save hotkey support
+- Enhanced snippet labels in library for easier identification
+- Improved Add Snippet button UI for better user experience
+- Updated license management system (SDK-based approach)
+
+### Bug Fixes
+
+- Fixed translation and deprecation errors
+- Fixed safe mode functionality
+- Fixed location number field not appearing with certain conditions
+- Fixed inactive snippets not being exported
+- Fixed RTL (right-to-left) issues in toggle controls
+- Fixed sync modal not appearing for advert type snippets
+- Fixed license message display issues
+- Fixed critical error with export logs tool permission checking
+- Fixed trashing posts from removing associated metadata
+
+#####   Version 2.6.1 (2025-10-21)
+
+- fix error with missing asset files
+
+####   Version 2.6.0 (2025-10-20)
+
+Woody Snippets plugin has been acquired by Themeisle 🎉
+We’re happy to announce that Themeisle is now the new owner of Woody Snippets. This acquisition will help ensure the plugin’s continued development, better support, and exciting new updates in the future.
+
+Your existing setup will continue to work as usual — no action is required on your part.
+
+
 = 2.5.1 =
 * Fixed: [insert_php] shortcodes are no longer supported due to the security risk to your site.
 * Fixed: Compatibility with Wordpress 6.5

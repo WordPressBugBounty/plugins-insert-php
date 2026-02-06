@@ -2,12 +2,10 @@
 /**
  * Execute snippet
  *
- * @author        Artem Prihodko <webtemyk@yandex.ru>
- * @copyright (c) 2020, CreativeMotion
- * @version       2.4
+ * @package Woody_Code_Snippets
  */
 
-// Exit if accessed directly
+// Exit if accessed directly.
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
@@ -29,6 +27,27 @@ class WINP_Execute_Snippet {
 	 */
 	public $snippets_locations;
 
+	/**
+	 * Current snippet ID being executed.
+	 * 
+	 * @var int Current snippet ID being executed (for error handling).
+	 */
+	private static $current_snippet_id = 0;
+
+	/**
+	 * Indicates whether shutdown handler has been registered.
+	 * 
+	 * @var bool Whether shutdown handler has been registered.
+	 */
+	private static $shutdown_registered = false;
+
+	/**
+	 * Tracked executed snippets on current page.
+	 * 
+	 * @var array<int, array{id: int, name: string, type: string, location: string, scope: string}>
+	 */
+	private $executed_snippets = [];
+
 	public static function app() {
 		if ( self::$instance === null ) {
 			self::$instance = new self();
@@ -38,10 +57,34 @@ class WINP_Execute_Snippet {
 	}
 
 	/**
+	 * Get executed snippets on current page.
+	 * 
+	 * @return array<int, array{id: int, name: string, type: string, location: string, scope: string}>
+	 */
+	public function get_executed_snippets() {
+		return $this->executed_snippets;
+	}
+
+	/**
 	 * WINP_Execute_Snippet constructor.
 	 */
 	public function __construct() {
 		self::$instance = $this;
+		
+		// Check if this is an AJAX validation request and skip the snippet being validated.
+		if ( wp_doing_ajax() 
+			&& isset( $_POST['action'] ) && 'wbcr_inp_ajax_validate_snippet' === $_POST['action'] 
+			&& isset( $_POST['post_id'] ) ) {
+			$validating_snippet_id = (int) $_POST['post_id'];
+			add_filter(
+				'winp_skip_snippet_execution',
+				function ( $should_skip, $snippet_id ) use ( $validating_snippet_id ) {
+					return $should_skip || $snippet_id === $validating_snippet_id;
+				},
+				1,
+				2
+			);
+		}
 
 		if ( ! defined( 'WINP_UPLOAD_DIR' ) ) {
 			$dir = wp_upload_dir();
@@ -54,16 +97,16 @@ class WINP_Execute_Snippet {
 		}
 		global $wpdb;
 
-		//todo: Simplify your request. Seems written ugly
+		// todo: Simplify your request. Seems written ugly
 		$sql = "SELECT {$wpdb->posts}.ID, {$wpdb->posts}.post_content, p2.meta_value as priority
  					FROM {$wpdb->posts}
  					INNER JOIN {$wpdb->postmeta} p1 ON ({$wpdb->posts}.ID = p1.post_id)
  					INNER JOIN {$wpdb->postmeta} p2 ON ({$wpdb->posts}.ID = p2.post_id)
  					INNER JOIN {$wpdb->postmeta} p3 ON ({$wpdb->posts}.ID = p3.post_id)
-					WHERE (( p1.meta_key = '" . WINP_Plugin::app()->getPrefix() . "snippet_scope' AND p1.meta_value = '%s')
+					WHERE (( p1.meta_key = 'wbcr_inp_snippet_scope' AND p1.meta_value = '%s')
 					     AND
-					      ( p3.meta_key = '" . WINP_Plugin::app()->getPrefix() . "snippet_activate' AND p3.meta_value = '1')
-						 AND p2.meta_key = '" . WINP_Plugin::app()->getPrefix() . "snippet_priority' ) 
+					      ( p3.meta_key = 'wbcr_inp_snippet_activate' AND p3.meta_value = '1')
+						 AND p2.meta_key = 'wbcr_inp_snippet_priority' ) 
  					AND {$wpdb->posts}.post_type = '" . WINP_SNIPPETS_POST_TYPE . "' 
  					AND ({$wpdb->posts}.post_status = 'publish')
  					ORDER BY CAST(priority AS UNSIGNED) %s";
@@ -78,19 +121,19 @@ class WINP_Execute_Snippet {
 	/**
 	 * Register hooks
 	 */
-	public function registerHooks() {
-		add_action( 'plugins_loaded', [ $this, 'executeEverywhereSnippets' ], 1 );
+	public function register_hooks() {
+		add_action( 'init', [ $this, 'execute_everywhere_snippets' ], 1 );
 
-		if ( ! is_admin() ) { #issue PCS-45 fix bug with WPBPage Builder Frontend Editor
-			add_action( 'wp_head', [ $this, 'executeHeaderSnippets' ] );
-			add_action( 'wp_footer', [ $this, 'executeFooterSnippets' ] );
+		if ( ! is_admin() ) { // issue PCS-45 fix bug with WPBPage Builder Frontend Editor
+			add_action( 'wp_head', [ $this, 'execute_header_snippets' ] );
+			add_action( 'wp_footer', [ $this, 'execute_footer_snippets' ] );
 			add_action( 'the_post', [ $this, 'executePostSnippets' ], 10, 2 );
 			add_filter( 'the_content', [ $this, 'executeContentSnippets' ] );
 			add_filter( 'the_excerpt', [ $this, 'executeExcerptSnippets' ] );
 			// Бесполезный хук, который вызывается на каждый комментарий. Если их много, увеличивается нагрузка
-			//add_filter( 'wp_list_comments_args', [ $this, 'executeListCommentsSnippets' ] );
+			// add_filter( 'wp_list_comments_args', [ $this, 'executeListCommentsSnippets' ] );
 
-			//add_action( 'wp_head', [ $this, 'executeWoocommerceSnippets' ] );
+			// add_action( 'wp_head', [ $this, 'executeWoocommerceSnippets' ] );
 
 			if ( ! empty( $this->snippets_locations->getInsertion( 'custom' ) ) ) {
 				add_action( 'wp_head', [ $this, 'executeCustomSnippets' ] );
@@ -101,28 +144,28 @@ class WINP_Execute_Snippet {
 	/**
 	 * Execute the everywhere snippets once the plugins are loaded
 	 */
-	public function executeEverywhereSnippets() {
-		echo $this->executeActiveSnippets( 'evrywhere' );
+	public function execute_everywhere_snippets() {
+		echo $this->execute_active_snippets( 'evrywhere' );
 	}
 
 	/**
 	 * Execute the snippets in header of page once the plugins are loaded
 	 */
-	public function executeHeaderSnippets() {
-		echo $this->executeActiveSnippets( 'auto', 'header' );
+	public function execute_header_snippets() {
+		echo $this->execute_active_snippets( 'auto', 'header' );
 	}
 
 	/**
 	 * Execute the snippets in footer of page once the plugins are loaded
 	 */
-	public function executeFooterSnippets() {
-		echo $this->executeActiveSnippets( 'auto', 'footer' );
+	public function execute_footer_snippets() {
+		echo $this->execute_active_snippets( 'auto', 'footer' );
 	}
 
 	/**
 	 * Execute the snippets before post
 	 *
-	 * @param WP_Post $post
+	 * @param WP_Post  $post
 	 * @param WP_Query $query
 	 */
 	public function executePostSnippets( $post, $query ) {
@@ -132,20 +175,18 @@ class WINP_Execute_Snippet {
 		if ( is_singular( [ $post_type ] ) ) {
 			if ( did_action( 'get_header' ) ) {
 				// Перед заголовком
-				$content = $this->executeActiveSnippets( 'auto', 'before_post' );
+				$content = $this->execute_active_snippets( 'auto', 'before_post' );
 			}
-		} else {
-			if ( $query->post_count > 0 ) {
-				if ( $query->post_count > 1 && $query->current_post > 0 && $query->post_count > $query->current_post ) {
-					// Между записями
-					$content = $this->executeActiveSnippets( 'auto', 'between_posts' );
-				}
+		} elseif ( $query->post_count > 0 ) {
+			if ( $query->post_count > 1 && $query->current_post > 0 && $query->post_count > $query->current_post ) {
+				// Между записями
+				$content = $this->execute_active_snippets( 'auto', 'between_posts' );
+			}
 				// Перед записью
-				$content .= $this->executeActiveSnippets( 'auto', 'before_posts', '', $query );
+				$content .= $this->execute_active_snippets( 'auto', 'before_posts', '', $query );
 
 				// После записи
-				$content .= $this->executeActiveSnippets( 'auto', 'after_posts', '', $query );
-			}
+				$content .= $this->execute_active_snippets( 'auto', 'after_posts', '', $query );
 		}
 
 		echo $content;
@@ -197,11 +238,11 @@ class WINP_Execute_Snippet {
 	/**
 	 * Handle posts content
 	 *
-	 * @param string $content
-	 * @param string $snippet_content
+	 * @param string  $content
+	 * @param string  $snippet_content
 	 * @param integer $post_number
-	 * @param string $type
-	 * @param object $query
+	 * @param string  $type
+	 * @param object  $query
 	 *
 	 * @return mixed
 	 */
@@ -243,27 +284,27 @@ class WINP_Execute_Snippet {
 
 		if ( is_category() || is_archive() || is_tag() || is_tax() || is_search() ) {
 			// Перед коротким описанием
-			$content = $this->executeActiveSnippets( 'auto', 'before_excerpt' ) . $content;
+			$content = $this->execute_active_snippets( 'auto', 'before_excerpt' ) . $content;
 
 			// После короткого описания
-			$content .= $this->executeActiveSnippets( 'auto', 'after_excerpt' );
+			$content .= $this->execute_active_snippets( 'auto', 'after_excerpt' );
 		}
 
 		if ( is_singular( [ $post_type ] ) ) {
 			// Перед параграфом
-			$content = $this->executeActiveSnippets( 'auto', 'before_paragraph', $content );
+			$content = $this->execute_active_snippets( 'auto', 'before_paragraph', $content );
 
 			// После параграфа
-			$content = $this->executeActiveSnippets( 'auto', 'after_paragraph', $content );
+			$content = $this->execute_active_snippets( 'auto', 'after_paragraph', $content );
 
 			// После заголовка
-			$content = $this->executeActiveSnippets( 'auto', 'before_content' ) . $content;
+			$content = $this->execute_active_snippets( 'auto', 'before_content' ) . $content;
 
 			// После текста
-			$content .= $this->executeActiveSnippets( 'auto', 'after_content' );
+			$content .= $this->execute_active_snippets( 'auto', 'after_content' );
 
 			// После поста
-			$content .= $this->executeActiveSnippets( 'auto', 'after_post' );
+			$content .= $this->execute_active_snippets( 'auto', 'after_post' );
 
 			if ( ! comments_open( $post->ID ) && ! get_comments_number( $post->ID ) ) {
 				remove_filter( 'wp_list_comments_args', [ $this, 'executeListCommentsSnippets' ] );
@@ -287,10 +328,10 @@ class WINP_Execute_Snippet {
 	public function executeExcerptSnippets( $excerpt ) {
 		if ( is_category() || is_archive() || is_tag() || is_tax() || is_search() ) {
 			// Перед коротким описанием
-			$excerpt = $this->executeActiveSnippets( 'auto', 'before_excerpt' ) . $excerpt;
+			$excerpt = $this->execute_active_snippets( 'auto', 'before_excerpt' ) . $excerpt;
 
 			// После короткого описания
-			$excerpt .= $this->executeActiveSnippets( 'auto', 'after_excerpt' );
+			$excerpt .= $this->execute_active_snippets( 'auto', 'after_excerpt' );
 		}
 
 		return $excerpt;
@@ -331,7 +372,7 @@ class WINP_Execute_Snippet {
 		$post_type = ! empty( $post ) ? $post->post_type : false;
 		if ( is_singular( [ $post_type ] ) ) {
 			// После комментариев
-			$content = $this->executeActiveSnippets( 'auto', 'after_post' );
+			$content = $this->execute_active_snippets( 'auto', 'after_post' );
 		}
 
 		echo $content;
@@ -345,7 +386,7 @@ class WINP_Execute_Snippet {
 	public function executeCustomSnippets() {
 		$locations = $this->snippets_locations->getInsertion( 'custom' );
 		foreach ( $locations as $location => $data ) {
-			$this->executeActiveSnippets( 'auto', $location );
+			$this->execute_active_snippets( 'auto', $location );
 		}
 	}
 
@@ -364,14 +405,20 @@ class WINP_Execute_Snippet {
 
 		switch ( $location ) {
 			case 'woo_before_shop_loop':
-				add_filter( 'woocommerce_product_loop_start', function ( $content ) use ( $snippet_content ) {
-					return $snippet_content . $content;
-				} );
+				add_filter(
+					'woocommerce_product_loop_start',
+					function ( $content ) use ( $snippet_content ) {
+						return $snippet_content . $content;
+					} 
+				);
 				break;
 			case 'woo_after_shop_loop':
-				add_filter( 'woocommerce_product_loop_end', function ( $content ) use ( $snippet_content ) {
-					return $content . $snippet_content;
-				} );
+				add_filter(
+					'woocommerce_product_loop_end',
+					function ( $content ) use ( $snippet_content ) {
+						return $content . $snippet_content;
+					} 
+				);
 				break;
 			case 'woo_before_single_product':
 				add_action( 'woocommerce_before_single_product', $action, 10, 2 );
@@ -427,39 +474,24 @@ class WINP_Execute_Snippet {
 	 * @param string $scope
 	 * @param string $location
 	 * @param string $content
-	 * @param array $custom_params
+	 * @param array  $custom_params
 	 *
 	 * @return string
 	 */
-	public function executeActiveSnippets( $scope = 'evrywhere', $location = '', $content = '', $custom_params = [] ) {
-		/*
-		global $wpdb;
-
-		if ( $scope == 'evrywhere' ) {
-			$sort = 'DESC';
-		} else {
-			$sort = 'ASC';
-		}
-		$snippets = $wpdb->get_results( "SELECT {$wpdb->posts}.ID, {$wpdb->posts}.post_content, p2.meta_value as priority
- 					FROM {$wpdb->posts}
- 					INNER JOIN {$wpdb->postmeta} p1 ON ({$wpdb->posts}.ID = p1.post_id)
- 					INNER JOIN {$wpdb->postmeta} p2 ON ({$wpdb->posts}.ID = p2.post_id)
- 					INNER JOIN {$wpdb->postmeta} p3 ON ({$wpdb->posts}.ID = p3.post_id)
-					WHERE (( p1.meta_key = '" . WINP_Plugin::app()->getPrefix() . "snippet_scope' AND p1.meta_value = '{$scope}')
-					     AND
-					      ( p3.meta_key = '" . WINP_Plugin::app()->getPrefix() . "snippet_activate' AND p3.meta_value = '1')
-                         AND p2.meta_key = '" . WINP_Plugin::app()->getPrefix() . "snippet_priority' )
-                    AND {$wpdb->posts}.post_type = '" . WINP_SNIPPETS_POST_TYPE . "'
- 					AND ({$wpdb->posts}.post_status = 'publish')
- 					ORDER BY CAST(priority AS UNSIGNED) {$sort}" );
-		*/
-
+	public function execute_active_snippets( $scope = 'evrywhere', $location = '', $content = '', $custom_params = [] ) {
 		$snippets = $this->snippets[ $scope ] ?? [];
 
 		if ( ! empty( $snippets ) ) {
 			foreach ( (array) $snippets as $snippet ) {
 				$id = (int) $snippet->ID;
-				//$is_active = (int) WINP_Helper::getMetaOption( $id, 'snippet_activate', 0 );
+				
+				// Allow filtering to skip specific snippet IDs.
+				$should_skip = apply_filters( 'winp_skip_snippet_execution', false, $id );
+				if ( $should_skip ) {
+					continue;
+				}
+				
+				// $is_active = (int) WINP_Helper::getMetaOption( $id, 'snippet_activate', 0 );
 				// Если это сниппет с автовставкой и выбранное место подходит под активный action
 				$avail_place = ( 'auto' == $scope ? $location == WINP_Helper::getMetaOption( $id, 'snippet_location', '' ) : true );
 				// Если условие отображения сниппета выполняется
@@ -467,11 +499,11 @@ class WINP_Execute_Snippet {
 				$is_condition = $snippet_type != WINP_SNIPPET_TYPE_PHP ? $this->checkCondition( $id ) : true;
 
 				if ( $avail_place && $is_condition ) {
-					$post_id = (int) WINP_Plugin::app()->request->post( 'post_ID', 0 );
+					$post_id = (int) WINP_HTTP::post( 'post_ID', 0 );
 
 					if ( ( isset( $_POST['wbcr_inp_snippet_scope'] )
-					       && $post_id === $id
-					       && WINP_Plugin::app()->currentUserCan() ) || WINP_Helper::is_safe_mode() ) {
+							&& $post_id === $id
+							&& WINP_Plugin::app()->current_user_car() ) || WINP_Helper::is_safe_mode() ) {
 						return $content;
 					}
 
@@ -492,7 +524,10 @@ class WINP_Execute_Snippet {
 					 */
 					$snippet_code = apply_filters( 'wbcr/inp/execute_snippet/snippet_code', $snippet_code, $id );
 
-					if ( WINP_Plugin::app()->getOption( 'execute_shortcode' ) ) {
+					// Track this snippet as executed.
+					$this->track_executed_snippet( $id, $scope );
+
+					if ( get_option( 'wbcr_inp_execute_shortcode' ) ) {
 						$snippet_code = do_shortcode( $snippet_code );
 					}
 
@@ -513,15 +548,18 @@ class WINP_Execute_Snippet {
 					// If the user has prohibited the insertion of unfiltered HTML,
 					// we prohibit the execution of snippets.
 					if ( ( defined( 'DISALLOW_UNFILTERED_HTML' ) && DISALLOW_UNFILTERED_HTML )
-					     && ! in_array( $snippet_type, [
-							WINP_SNIPPET_TYPE_TEXT,
-							WINP_SNIPPET_TYPE_AD,
-							WINP_SNIPPET_TYPE_CSS
-						] ) ) {
+						&& ! in_array(
+							$snippet_type,
+							[
+								WINP_SNIPPET_TYPE_TEXT,
+								WINP_SNIPPET_TYPE_AD,
+								WINP_SNIPPET_TYPE_CSS,
+							] 
+						) ) {
 						$snippet_content = '';
 
-						if ( is_user_logged_in() && WINP_Plugin::app()->currentUserCan() ) {
-							$error_text = __( '[Woody snippet cannot be executed because you have disabled the insertion of unfiltered html!]', 'insert-php' );
+						if ( is_user_logged_in() && WINP_Plugin::app()->current_user_car() ) {
+							$error_text = __( 'This Woody snippet cannot run because unfiltered HTML insertion is disabled.', 'insert-php' );
 
 							switch ( $location ) {
 								case 'header':
@@ -566,7 +604,7 @@ class WINP_Execute_Snippet {
 						 */
 						do_action( 'wbcr/woody/do_woocommerce_actions', $location, $snippet_content );
 
-						//$this->woocommerce_actions( $location, $snippet_content );
+						// $this->woocommerce_actions( $location, $snippet_content );
 						$this->custom_actions( $location, $snippet_content );
 					} else {
 						$content = $snippet_content . $content;
@@ -576,6 +614,105 @@ class WINP_Execute_Snippet {
 		}
 
 		return $content;
+	}
+
+	/**
+	 * Track shortcode snippet execution.
+	 * 
+	 * Public method for shortcode classes to call.
+	 * 
+	 * @param int $snippet_id Snippet ID.
+	 * @return void
+	 */
+	public function track_shortcode_snippet( $snippet_id ) {
+		$this->track_executed_snippet( $snippet_id, 'shortcode' );
+	}
+
+	/**
+	 * Track executed snippet.
+	 * 
+	 * @param int    $snippet_id Snippet ID.
+	 * @param string $scope Snippet scope.
+	 * @return void
+	 */
+	private function track_executed_snippet( $snippet_id, $scope ) {
+		if ( isset( $this->executed_snippets[ $snippet_id ] ) ) {
+			return; // Already tracked.
+		}
+
+		$snippet = get_post( $snippet_id );
+		if ( ! $snippet ) {
+			return;
+		}
+
+		$snippet_type     = WINP_Helper::getMetaOption( $snippet_id, 'snippet_type', WINP_SNIPPET_TYPE_PHP );
+		$snippet_location = WINP_Helper::getMetaOption( $snippet_id, 'snippet_location', '' );
+
+		// Map location to human-readable label.
+		$location_label = $this->get_location_label( $scope, $snippet_location );
+
+		$this->executed_snippets[ $snippet_id ] = [
+			'id'       => $snippet_id,
+			'name'     => $snippet->post_title,
+			'type'     => $this->get_type_label( $snippet_type ),
+			'location' => $location_label,
+			'scope'    => $scope,
+		];
+	}
+
+	/**
+	 * Get human-readable location label.
+	 * 
+	 * @param string $scope Snippet scope.
+	 * @param string $location Snippet location.
+	 * @return string
+	 */
+	private function get_location_label( $scope, $location ) {
+		if ( 'evrywhere' === $scope ) {
+			return __( 'Everywhere', 'insert-php' );
+		}
+
+		if ( 'shortcode' === $scope ) {
+			return __( 'Shortcode', 'insert-php' );
+		}
+
+		$location_labels = [
+			'header'           => __( 'Header', 'insert-php' ),
+			'footer'           => __( 'Footer', 'insert-php' ),
+			'before_post'      => __( 'Before Post', 'insert-php' ),
+			'before_content'   => __( 'Before Content', 'insert-php' ),
+			'before_paragraph' => __( 'Before Paragraph', 'insert-php' ),
+			'after_paragraph'  => __( 'After Paragraph', 'insert-php' ),
+			'after_content'    => __( 'After Content', 'insert-php' ),
+			'after_post'       => __( 'After Post', 'insert-php' ),
+			'before_excerpt'   => __( 'Before Excerpt', 'insert-php' ),
+			'after_excerpt'    => __( 'After Excerpt', 'insert-php' ),
+			'before_posts'     => __( 'Before Posts', 'insert-php' ),
+			'after_posts'      => __( 'After Posts', 'insert-php' ),
+			'after_comments'   => __( 'After Comments', 'insert-php' ),
+		];
+
+		return $location_labels[ $location ] ?? ucwords( str_replace( '_', ' ', $location ) );
+	}
+
+	/**
+	 * Get human-readable type label.
+	 * 
+	 * @param string $type Snippet type.
+	 * @return string
+	 */
+	private function get_type_label( $type ) {
+		$type_labels = [
+			WINP_SNIPPET_TYPE_PHP       => 'PHP',
+			WINP_SNIPPET_TYPE_UNIVERSAL => 'Universal',
+			WINP_SNIPPET_TYPE_HTML      => 'HTML',
+			WINP_SNIPPET_TYPE_CSS       => 'CSS',
+			WINP_SNIPPET_TYPE_JS        => 'JS',
+			WINP_SNIPPET_TYPE_TEXT      => 'TEXT',
+			WINP_SNIPPET_TYPE_AD        => 'AD',
+		];
+
+		return $type_labels[ $type ] ?? 'PHP';
 	}
 
 	/**
@@ -626,9 +763,9 @@ class WINP_Execute_Snippet {
 	 * Code must NOT be escaped, as
 	 * it will be executed directly
 	 *
-	 * @param string $code The snippet code to execute
-	 * @param int $id The snippet ID
-	 * @param bool $catch_output Whether to attempt to suppress the output of execution using buffers
+	 * @param string $code The snippet code to execute.
+	 * @param int    $id The snippet ID.
+	 * @param bool   $catch_output Whether to attempt to suppress the output of execution using buffers.
 	 *
 	 * @return mixed        The result of the code execution
 	 */
@@ -651,6 +788,15 @@ class WINP_Execute_Snippet {
 
 		$snippet_type = WINP_Helper::getMetaOption( $id, 'snippet_type', true );
 
+		// Set current snippet ID for error handling.
+		self::$current_snippet_id = $id;
+
+		// Register shutdown function once to catch fatal errors.
+		if ( ! self::$shutdown_registered ) {
+			register_shutdown_function( [ $this, 'handle_snippet_shutdown' ] );
+			self::$shutdown_registered = true;
+		}
+
 		if ( $snippet_type == WINP_SNIPPET_TYPE_UNIVERSAL ) {
 			$result = eval( '?>' . $code . '<?php ' );
 		} elseif ( $snippet_type == WINP_SNIPPET_TYPE_PHP ) {
@@ -664,6 +810,328 @@ class WINP_Execute_Snippet {
 		}
 
 		return $result;
+	}
+
+	/**
+	 * Handle fatal errors during snippet execution.
+	 * 
+	 * @return void
+	 */
+	public function handle_snippet_shutdown() {
+		$error = error_get_last();
+
+		// If there's a fatal error and a snippet was being executed, check if it's from the snippet.
+		if ( self::$current_snippet_id && $error && in_array( $error['type'], [ E_ERROR, E_PARSE, E_CORE_ERROR, E_COMPILE_ERROR, E_USER_ERROR ] ) ) {
+			// Only log if the error originated from the snippet code itself.
+			if ( $this->is_error_from_snippet( $error ) ) {
+				$this->log_snippet_error( self::$current_snippet_id, $error );
+			}
+		}
+		
+		// Clear the snippet ID after processing.
+		self::$current_snippet_id = 0;
+	}
+
+	/**
+	 * Check if the error originated from the snippet code.
+	 * 
+	 * @param array<string, mixed> $error Error details.
+	 * 
+	 * @return bool True if error is from snippet, false otherwise.
+	 */
+	private function is_error_from_snippet( $error ) {
+		if ( ! isset( $error['file'] ) ) {
+			return false;
+		}
+
+		$error_file = $error['file'];
+
+		// Check if error is from eval'd code (PHP snippets executed via eval).
+		if ( strpos( $error_file, "eval()'d code" ) !== false ) {
+			return true;
+		}
+
+		return false;
+	}
+
+	/**
+	 * Log snippet error via admin notice
+	 *
+	 * @param int                  $snippet_id Snippet ID.
+	 * @param array<string, mixed> $error Error details.
+	 * 
+	 * @return void
+	 */
+	private function log_snippet_error( $snippet_id, $error ) {
+		// Validate error array has required keys.
+		if ( ! isset( $error['message'], $error['file'], $error['line'] ) ) {
+			return;
+		}
+		
+		// Generate unique notice ID based on snippet ID and error details.
+		$error_signature = md5( $snippet_id . $error['message'] . $error['file'] . $error['line'] );
+		$notice_id       = 'snippet_error_' . $error_signature;
+
+		// Get snippet title for better context.
+		$snippet       = get_post( $snippet_id );
+		$snippet_title = $snippet ? $snippet->post_title : "ID {$snippet_id}";
+
+		// Extract the main error message (before stack trace).
+		$error_message = $error['message'];
+		if ( strpos( $error_message, ' Stack trace:' ) !== false ) {
+			$error_message = substr( $error_message, 0, strpos( $error_message, ' Stack trace:' ) );
+		}
+		$error_message = trim( $error_message );
+
+		// Shorten file path for readability.
+		$file_path = str_replace( ABSPATH, '', $error['file'] );
+
+		// Get edit link for the snippet.
+		$edit_link = admin_url( 'post.php?post=' . $snippet_id . '&action=edit' );
+
+		// Build notice message.
+		$message = sprintf(
+			'<div class="winp-error-notice-header"><strong>%s</strong> %s <a href="%s" class="winp-snippet-edit-link" target="_blank">%s</a></div><details><summary>%s</summary><div class="winp-error-details"><div class="winp-error-message"><strong>%s:</strong><br><code>%s</code></div><div class="winp-error-location"><strong>%s:</strong><br>%s <span class="winp-line-number">%s %d</span></div></div></details><div class="winp-error-notice-footer"><p class="winp-dismiss-help">%s</p><button type="button" class="button winp-manual-dismiss-btn">%s</button></div>',
+			__( 'Snippet Error Detected', 'insert-php' ),
+			// Translators: 1: Snippet title.
+			sprintf( __( 'Snippet "%s" caused a fatal error.', 'insert-php' ), esc_html( $snippet_title ) ),
+			esc_url( $edit_link ),
+			__( 'Edit Snippet', 'insert-php' ),
+			__( 'Show error details', 'insert-php' ),
+			__( 'Error', 'insert-php' ),
+			esc_html( $error_message ),
+			__( 'Location', 'insert-php' ),
+			esc_html( $file_path ),
+			__( 'line', 'insert-php' ),
+			$error['line'],
+			__( 'If you have fixed this error, you can dismiss this notice.', 'insert-php' ),
+			__( 'Dismiss', 'insert-php' )
+		);
+
+		// Store error notice in option to be displayed on next admin page load.
+		$pending_notices = get_option( 'winp_pending_error_notices', [] );
+		if ( ! is_array( $pending_notices ) ) {
+			$pending_notices = [];
+		}
+
+		// Only add if not already present (avoid race conditions).
+		if ( ! isset( $pending_notices[ $notice_id ] ) ) {
+			$pending_notices[ $notice_id ] = [
+				'message' => $message,
+				'type'    => 'error',
+			];
+			
+			update_option( 'winp_pending_error_notices', $pending_notices, false );
+
+			// Send email notification if enabled and this is a new error.
+			$this->send_error_email( $notice_id, $snippet_id, $snippet_title, $error_message, $file_path, $error['line'], $edit_link );
+		}
+	}
+
+	/**
+	 * Send email notification for snippet error
+	 *
+	 * @param string $error_signature Unique error identifier.
+	 * @param int    $snippet_id The ID of the snippet.
+	 * @param string $snippet_title The title of the snippet.
+	 * @param string $error_message The error message.
+	 * @param string $file_path The file path where error occurred.
+	 * @param int    $line_number The line number where error occurred.
+	 * @param string $edit_link Link to edit the snippet.
+	 *
+	 * @return void
+	 */
+	private function send_error_email( $error_signature, $snippet_id, $snippet_title, $error_message, $file_path, $line_number, $edit_link ) {
+		// Check if email notifications are enabled.
+		$email_enabled = get_option( 'wbcr_inp_error_email_enabled' );
+		if ( ! $email_enabled ) {
+			return;
+		}
+
+		// Get email address.
+		$email_address = get_option( 'wbcr_inp_error_email_address', get_option( 'admin_email' ) );
+		if ( empty( $email_address ) || ! is_email( $email_address ) ) {
+			return;
+		}
+
+		// Check if we've already emailed about this error.
+		$emailed_errors = get_option( 'winp_emailed_errors', [] );
+		if ( ! is_array( $emailed_errors ) ) {
+			$emailed_errors = [];
+		}
+
+		// If we've already emailed about this error, skip.
+		if ( isset( $emailed_errors[ $error_signature ] ) ) {
+			return;
+		}
+
+		// Clean up old entries (older than 30 days).
+		$thirty_days_ago = time() - ( 30 * DAY_IN_SECONDS );
+		foreach ( $emailed_errors as $hash => $timestamp ) {
+			if ( $timestamp < $thirty_days_ago ) {
+				unset( $emailed_errors[ $hash ] );
+			}
+		}
+
+		// Build email content.
+		$site_name = get_bloginfo( 'name' );
+		$admin_url = admin_url( 'edit.php?post_type=' . WINP_SNIPPETS_POST_TYPE );
+		$subject   = sprintf( '[%s] Snippet Error Detected: %s', $site_name, $snippet_title );
+
+		$email_body = $this->get_error_email_template( $site_name, $snippet_id, $snippet_title, $error_message, $file_path, $line_number, $edit_link, $admin_url );
+
+		// Set email headers for HTML.
+		$headers = [
+			'Content-Type: text/html; charset=UTF-8',
+		];
+
+		// Send email.
+		$sent = wp_mail( $email_address, $subject, $email_body, $headers ); // phpcs:ignore WordPressVIPMinimum.Functions.RestrictedFunctions.wp_mail_wp_mail
+
+		// If email sent successfully, mark this error as emailed.
+		if ( $sent ) {
+			$emailed_errors[ $error_signature ] = time();
+			update_option( 'winp_emailed_errors', $emailed_errors, false );
+		}
+	}
+
+	/**
+	 * Get HTML email template for error notification
+	 *
+	 * @param string $site_name Site name.
+	 * @param int    $snippet_id Snippet ID.
+	 * @param string $snippet_title Snippet title.
+	 * @param string $error_message Error message.
+	 * @param string $file_path File path.
+	 * @param int    $line_number Line number.
+	 * @param string $edit_link Edit link.
+	 * @param string $admin_url Admin URL.
+	 *
+	 * @return string HTML email template.
+	 */
+	private function get_error_email_template( $site_name, $snippet_id, $snippet_title, $error_message, $file_path, $line_number, $edit_link, $admin_url ) {
+		ob_start();
+		?>
+		<!DOCTYPE html>
+		<html>
+		<head>
+			<meta charset="UTF-8">
+			<meta name="viewport" content="width=device-width, initial-scale=1.0">
+			<title><?php echo esc_html( __( 'Snippet Error Notification', 'insert-php' ) ); ?></title>
+		</head>
+		<body style="margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen-Sans, Ubuntu, Cantarell, 'Helvetica Neue', sans-serif; background-color: #f0f0f1;">
+			<table role="presentation" style="width: 100%; border-collapse: collapse;">
+				<tr>
+					<td align="center" style="padding: 40px 20px;">
+						<table role="presentation" style="width: 100%; max-width: 600px; border-collapse: collapse; background-color: #ffffff; border: 1px solid #c3c4c7; border-radius: 2px;">
+							<!-- Header -->
+							<tr>
+								<td style="padding: 24px 30px; background-color: #2271b1; border-bottom: 1px solid #135e96;">
+									<h1 style="margin: 0; color: #ffffff; font-size: 20px; font-weight: 600;">
+										⚠️ <?php echo esc_html( __( 'Snippet Error Detected', 'insert-php' ) ); ?>
+									</h1>
+								</td>
+							</tr>
+
+							<!-- Content -->
+							<tr>
+								<td style="padding: 30px;">
+									<p style="margin: 0 0 16px; color: #1d2327; font-size: 14px; line-height: 1.6;">
+										<?php echo esc_html( __( 'Hello,', 'insert-php' ) ); ?>
+									</p>
+
+									<p style="margin: 0 0 20px; color: #1d2327; font-size: 14px; line-height: 1.6;">
+										<?php
+										printf(
+											// translators: 1: snippet title, 2: site name.
+											esc_html( __( 'A fatal error has been detected in the snippet "%1$s" on your site %2$s.', 'insert-php' ) ),
+											'<strong>' . esc_html( $snippet_title ) . '</strong>',
+											'<strong>' . esc_html( $site_name ) . '</strong>'
+										);
+										?>
+									</p>
+
+									<!-- Error Details Box -->
+									<table role="presentation" style="width: 100%; border-collapse: collapse; margin: 24px 0; background-color: #fcf0f1; border-left: 4px solid #d63638; border-radius: 0;">
+										<tr>
+											<td style="padding: 16px 20px;">
+												<p style="margin: 0 0 12px; color: #8c1c13; font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px;">
+													<?php echo esc_html( __( 'Error Details', 'insert-php' ) ); ?>
+												</p>
+
+												<div style="margin-bottom: 12px;">
+													<p style="margin: 0 0 6px; color: #3c434a; font-size: 13px; font-weight: 600;">
+														<?php echo esc_html( __( 'Error Message:', 'insert-php' ) ); ?>
+													</p>
+													<p style="margin: 0; padding: 8px 12px; background-color: #ffffff; border: 1px solid #dcdcde; color: #1d2327; font-size: 13px; font-family: Consolas, Monaco, monospace; word-break: break-word; line-height: 1.5;">
+														<?php echo esc_html( $error_message ); ?>
+													</p>
+												</div>
+
+												<div style="margin-bottom: 12px;">
+													<p style="margin: 0 0 6px; color: #3c434a; font-size: 13px; font-weight: 600;">
+														<?php echo esc_html( __( 'Location:', 'insert-php' ) ); ?>
+													</p>
+													<p style="margin: 0; padding: 8px 12px; background-color: #ffffff; border: 1px solid #dcdcde; color: #1d2327; font-size: 13px; font-family: Consolas, Monaco, monospace; line-height: 1.5;">
+														<?php echo esc_html( $file_path ); ?> <span style="color: #646970;"><?php echo esc_html( __( 'line', 'insert-php' ) ); ?> <?php echo intval( $line_number ); ?></span>
+													</p>
+												</div>
+
+												<div>
+													<p style="margin: 0 0 6px; color: #3c434a; font-size: 13px; font-weight: 600;">
+														<?php echo esc_html( __( 'Snippet:', 'insert-php' ) ); ?>
+													</p>
+													<p style="margin: 0; padding: 8px 12px; background-color: #ffffff; border: 1px solid #dcdcde; color: #1d2327; font-size: 13px; line-height: 1.5;">
+														<?php echo esc_html( $snippet_title ); ?> <span style="color: #646970;">(ID: <?php echo intval( $snippet_id ); ?>)</span>
+													</p>
+												</div>
+											</td>
+										</tr>
+									</table>
+
+									<!-- Action Buttons -->
+									<table role="presentation" style="width: 100%; border-collapse: collapse; margin: 24px 0;">
+										<tr>
+											<td style="padding: 0;">
+												<a href="<?php echo esc_url( $edit_link ); ?>" style="display: inline-block; padding: 10px 20px; background-color: #2271b1; color: #ffffff; text-decoration: none; border-radius: 3px; font-weight: 500; font-size: 13px; margin-right: 8px; border: 1px solid #2271b1;">
+													<?php echo esc_html( __( 'Edit Snippet', 'insert-php' ) ); ?>
+												</a>
+												<a href="<?php echo esc_url( $admin_url ); ?>" style="display: inline-block; padding: 10px 20px; background-color: #f6f7f7; color: #2c3338; text-decoration: none; border-radius: 3px; font-weight: 500; font-size: 13px; border: 1px solid #c3c4c7;">
+													<?php echo esc_html( __( 'View All Snippets', 'insert-php' ) ); ?>
+												</a>
+											</td>
+										</tr>
+									</table>
+
+									<p style="margin: 20px 0 0; color: #646970; font-size: 13px; line-height: 1.6;">
+										<?php echo esc_html( __( 'This notification is sent only once per unique error. You can disable these notifications in the plugin settings.', 'insert-php' ) ); ?>
+									</p>
+								</td>
+							</tr>
+
+							<!-- Footer -->
+							<tr>
+								<td style="padding: 16px 30px; background-color: #f6f7f7; border-top: 1px solid #dcdcde;">
+									<p style="margin: 0; color: #646970; font-size: 12px; text-align: center;">
+										<?php
+										printf(
+											// translators: %s: site name.
+											esc_html( __( 'This email was sent by Woody Code Snippets on %s', 'insert-php' ) ),
+											'<strong>' . esc_html( $site_name ) . '</strong>'
+										);
+										?>
+									</p>
+								</td>
+							</tr>
+						</table>
+					</td>
+				</tr>
+			</table>
+		</body>
+		</html>
+		<?php
+		$output = ob_get_clean();
+		return false !== $output ? $output : '';
 	}
 
 	/**
@@ -695,7 +1163,7 @@ class WINP_Execute_Snippet {
 		// Итоговый результат условий
 		$result = true;
 		// Получаем сохранённые параметры условий
-		$filters = get_post_meta( $snippet_id, WINP_Plugin::app()->getPrefix() . 'snippet_filters' );
+		$filters = get_post_meta( $snippet_id, 'wbcr_inp_snippet_filters' );
 		// Если условия указаны
 		if ( ! ( empty( $filters ) || isset( $filters[0] ) && empty( $filters[0] ) ) ) {
 			foreach ( $filters[0] as $filter ) {
@@ -790,7 +1258,7 @@ class WINP_Execute_Snippet {
 	/**
 	 * Prepare the code by removing php tags from beginning and end
 	 *
-	 * @param string $code
+	 * @param string  $code
 	 * @param integer $snippet_id
 	 *
 	 * @return string
@@ -799,9 +1267,9 @@ class WINP_Execute_Snippet {
 		$snippet_type = WINP_Helper::get_snippet_type( $snippet_id );
 
 		if ( $snippet_type != WINP_SNIPPET_TYPE_UNIVERSAL
-		     && $snippet_type != WINP_SNIPPET_TYPE_CSS
-		     && $snippet_type != WINP_SNIPPET_TYPE_JS
-		     && $snippet_type != WINP_SNIPPET_TYPE_HTML ) {
+			&& $snippet_type != WINP_SNIPPET_TYPE_CSS
+			&& $snippet_type != WINP_SNIPPET_TYPE_JS
+			&& $snippet_type != WINP_SNIPPET_TYPE_HTML ) {
 
 			/* Remove <?php and <? from beginning of snippet */
 			$code = preg_replace( '|^[\s]*<\?(php)?|', '', $code );
@@ -846,14 +1314,14 @@ class WINP_Execute_Snippet {
 	/**
 	 * Check by operator
 	 *
-	 * @param $operation
-	 * @param $first
-	 * @param $second
-	 * @param $third
+	 * @param string $operation Comparison operator.
+	 * @param mixed  $first First value.
+	 * @param mixed  $second Second value.
+	 * @param bool   $third Third value.
 	 *
 	 * @return bool
 	 */
-	public function checkByOperator( $operation, $first, $second, $third = false ) {
+	public function check_by_operator( $operation, $first, $second, $third = false ) {
 		switch ( $operation ) {
 			case 'equals':
 				if ( is_array( $second ) ) {
@@ -895,26 +1363,32 @@ class WINP_Execute_Snippet {
 	 */
 	private function user_role( $operator, $value ) {
 		if ( ! is_user_logged_in() ) {
-			return $this->checkByOperator( $operator, $value, 'guest' );
+			return $this->check_by_operator( $operator, $value, 'guest' );
 		} else {
 			$current_user = wp_get_current_user();
 			if ( ! ( $current_user instanceof WP_User ) ) {
 				return false;
 			}
 
-			return $this->checkByOperator( $operator, $value, $current_user->roles[0] );
+			return $this->check_by_operator( $operator, $value, $current_user->roles[0] );
 		}
 	}
 
 	/**
 	 * Get timestamp
 	 *
-	 * @param $units
-	 * @param $count
+	 * @param string $units Time units.
+	 * @param mixed  $count Count of units.
 	 *
 	 * @return integer
 	 */
-	private function getTimestamp( $units, $count ) {
+	private function get_timestamp( $units, $count ) {
+		if ( ! is_numeric( $count ) ) {
+			return 0;
+		}
+		
+		$count = (int) $count;
+		
 		switch ( $units ) {
 			case 'seconds':
 				return $count;
@@ -939,13 +1413,16 @@ class WINP_Execute_Snippet {
 	/**
 	 * Get date timestamp
 	 *
-	 * @param $value
+	 * @param mixed $value Date value.
 	 *
-	 * @return integer
+	 * @return int|mixed Returns 0 on validation failure, timestamp calculation, or the original value
 	 */
-	public function getDateTimestamp( $value ) {
+	public function get_date_timestamp( $value ) {
 		if ( is_object( $value ) ) {
-			return ( current_time( 'timestamp' ) - $this->getTimestamp( $value->units, $value->unitsCount ) ) * 1000;
+			if ( ! isset( $value->units ) || ! isset( $value->unitsCount ) ) { // phpcs:ignore WordPress.NamingConventions.ValidVariableName.UsedPropertyNotSnakeCase
+				return 0;
+			}
+			return ( current_time( 'timestamp' ) - $this->get_timestamp( $value->units, $value->unitsCount ) ) * 1000; // phpcs:ignore WordPress.NamingConventions.ValidVariableName.UsedPropertyNotSnakeCase, WordPress.DateTime.CurrentTimeTimestamp.Requested
 		} else {
 			return $value;
 		}
@@ -955,8 +1432,8 @@ class WINP_Execute_Snippet {
 	 * The date when the user who views your website was registered.
 	 * For unregistered users this date always equals to 1 Jan 1970.
 	 *
-	 * @param string $operator
-	 * @param string $value
+	 * @param string $operator Comparison operator.
+	 * @param mixed  $value  Comparison value (object for 'between', mixed otherwise).
 	 *
 	 * @return boolean
 	 */
@@ -965,22 +1442,46 @@ class WINP_Execute_Snippet {
 			return false;
 		} else {
 			$user       = wp_get_current_user();
-			$registered = strtotime( $user->data->user_registered ) * 1000;
+			$registered = strtotime( $user->data->user_registered );
+			
+			// Validate that we have a valid registration timestamp.
+			if ( false === $registered ) {
+				return false;
+			}
+			
+			$registered = $registered * 1000;
 
-			if ( $operator == 'equals' || $operator == 'notequal' ) {
+			if ( 'equals' === $operator || 'notequal' === $operator ) {
 				$registered = $registered / 1000;
-				$timestamp  = round( $this->getDateTimestamp( $value ) / 1000 );
+				$timestamp  = $this->get_date_timestamp( $value );
+				
+				if ( ! $timestamp || $timestamp <= 0 ) {
+					return false;
+				}
+				
+				$timestamp = round( $timestamp / 1000 );
 
-				return $this->checkByOperator( $operator, date( 'Y-m-d', $timestamp ), date( 'Y-m-d', $registered ) );
-			} elseif ( $operator == 'between' ) {
-				$start_timestamp = $this->getDateTimestamp( $value->start );
-				$end_timestamp   = $this->getDateTimestamp( $value->end );
+				return $this->check_by_operator( $operator, gmdate( 'Y-m-d', (int) $timestamp ), gmdate( 'Y-m-d', (int) $registered ) );
+			} elseif ( 'between' === $operator ) {
+				if ( ! is_object( $value ) || ! isset( $value->start ) || ! isset( $value->end ) ) {
+					return false;
+				}
+				$start_timestamp = $this->get_date_timestamp( $value->start );
+				$end_timestamp   = $this->get_date_timestamp( $value->end );
+				
+				if ( ! $start_timestamp || $start_timestamp <= 0 || ! $end_timestamp || $end_timestamp <= 0 ) {
+					return false;
+				}
 
-				return $this->checkByOperator( $operator, $start_timestamp, $registered, $end_timestamp );
+				return $this->check_by_operator( $operator, $start_timestamp, $registered, $end_timestamp );
 			} else {
-				$timestamp = $this->getDateTimestamp( $value );
+				$timestamp = $this->get_date_timestamp( $value );
+				
+				if ( ! $timestamp || $timestamp <= 0 ) {
+					return false;
+				}
 
-				return $this->checkByOperator( $operator, $timestamp, $registered );
+				return $this->check_by_operator( $operator, $timestamp, $registered );
 			}
 		}
 	}
@@ -988,8 +1489,8 @@ class WINP_Execute_Snippet {
 	/**
 	 * Check the user views your website from mobile device or not
 	 *
-	 * @param string $operator
-	 * @param string $value
+	 * @param string $operator Comparison operator.
+	 * @param string $value Comparison value.
 	 *
 	 * @return boolean
 	 *
@@ -1124,7 +1625,7 @@ class WINP_Execute_Snippet {
 			}
 		}
 
-		return $this->checkByOperator( $operator, $result, true );
+		return $this->check_by_operator( $operator, $result, true );
 	}
 
 	/**
@@ -1138,7 +1639,7 @@ class WINP_Execute_Snippet {
 	private function location_page( $operator, $value ) {
 		$url = $this->getCurrentUrl();
 
-		return $url ? $this->checkByOperator( $operator, trim( $url, '/' ), trim( $value, '/' ) ) : false;
+		return $url ? $this->check_by_operator( $operator, trim( $url, '/' ), trim( $value, '/' ) ) : false;
 	}
 
 	/**
@@ -1152,7 +1653,7 @@ class WINP_Execute_Snippet {
 	private function location_referrer( $operator, $value ) {
 		$url = $this->getRefererUrl();
 
-		return $url ? $this->checkByOperator( $operator, trim( $url, '/' ), trim( $value, '/' ) ) : false;
+		return $url ? $this->check_by_operator( $operator, trim( $url, '/' ), trim( $value, '/' ) ) : false;
 	}
 
 	/**
@@ -1165,7 +1666,7 @@ class WINP_Execute_Snippet {
 	 */
 	private function location_post_type( $operator, $value ) {
 		if ( is_singular() ) {
-			return $this->checkByOperator( $operator, $value, get_post_type() );
+			return $this->check_by_operator( $operator, $value, get_post_type() );
 		}
 
 		return false;
@@ -1188,7 +1689,7 @@ class WINP_Execute_Snippet {
 			$term_id = get_queried_object()->term_id;
 
 			if ( $term_id ) {
-				return $this->checkByOperator( $operator, intval( $value ), $term_id );
+				return $this->check_by_operator( $operator, intval( $value ), $term_id );
 			}
 		}
 
@@ -1217,7 +1718,7 @@ class WINP_Execute_Snippet {
 		}
 
 		if ( $term_id ) {
-			return $this->checkByOperator( $operator, intval( $value ), $term_id );
+			return $this->check_by_operator( $operator, intval( $value ), $term_id );
 		}
 
 		return false;

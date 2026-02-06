@@ -117,4 +117,78 @@ jQuery(document).ready( function($) {
     if ($('.winp-field-premium-element').length > 0) {
         $('.winp-field-premium-element').wrap('<div class="winp-field-premium-icon"></div>');
     }
+
+    // Handle click on shortcode input to copy to clipboard
+    $('input.wbcr_inp_shortcode_input').on('click', function (e) {
+        var input = $(this);
+        var value = input.val();
+        
+        // Select the text
+        this.setSelectionRange(0, this.value.length);
+        
+        // Copy to clipboard
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+            // Modern clipboard API
+            navigator.clipboard.writeText(value).then(function() {
+                showCopyNotice(input);
+            }).catch(function(err) {
+                console.error('Failed to copy:', err);
+                fallbackCopy(input);
+            });
+        } else {
+            // Fallback for older browsers
+            fallbackCopy(input);
+        }
+    });
+
+    function fallbackCopy(input) {
+        try {
+            input[0].select();
+            var successful = document.execCommand('copy');
+            if (successful) {
+                showCopyNotice(input);
+            }
+        } catch (err) {
+            console.error('Failed to copy:', err);
+        }
+    }
+
+    function showCopyNotice(input) {
+        // Remove any existing notices
+        $('.winp-copy-notice').remove();
+        
+        // Create and show notice
+        var notice = $('<div class="winp-copy-notice"><span>Copied to clipboard!</span></div>');
+        input.after(notice);
+        
+        // Position the notice
+        notice.css({
+            position: 'absolute',
+            background: '#6366f1',
+            color: '#fff',
+            borderRadius: '3px',
+            fontSize: '12px',
+            zIndex: 1000,
+            whiteSpace: 'nowrap',
+            boxShadow: '0 2px 5px rgba(0,0,0,0.2)',
+            height: '38px',
+            width: '100%',
+            marginTop: '-10px',
+        });
+        
+        // Style the span
+        notice.find('span').css({
+            display: 'flex',
+            justifyContent: 'center',
+            alignItems: 'center',
+            height: '100%'
+        });
+        
+        // Fade out and remove after 2 seconds
+        setTimeout(function() {
+            notice.fadeOut(300, function() {
+                notice.remove();
+            });
+        }, 2000);
+    }
 });

@@ -1727,11 +1727,11 @@ msgid "Where to execute the code?"
 msgstr ""
 
 #: admin/metaboxes/base-options.php:548
-msgid "Where use:"
+msgid "Location:"
 msgstr ""
 
 #: admin/includes/class.snippets.viewtable.php:19
-msgid "Where use?"
+msgid "Location"
 msgstr ""
 
 #: admin/ajax/ajax.php:209 admin/metaboxes/base-options.php:668

@@ -2,10 +2,7 @@
 /**
  * Insertion locations
  *
- * @author        Artem Prihodko <webtemyk@yandex.ru>
- * @copyright (c) 2021, Creative Motion
- * @version       1.0
- * @since         2.4
+ * @package Woody_Code_Snippets
  */
 
 // Exit if accessed directly
@@ -27,17 +24,15 @@ class WINP_Insertion_Locations {
 					__( 'Header', 'insert-php' ),
 					__( 'Snippet will be placed in the source code before </head>.', 'insert-php' ),
 					[
-						'hide' => '.factory-control-snippet_p_number',
-						'show' => '',
-					]
+						'requiresLocationNumber' => false,
+					],
 				],
 				'footer' => [
 					__( 'Footer', 'insert-php' ),
 					__( 'Snippet will be placed in the source code before </body>.', 'insert-php' ),
 					[
-						'hide' => '.factory-control-snippet_p_number',
-						'show' => '',
-					]
+						'requiresLocationNumber' => false,
+					],
 				],
 			],
 			'posts'       => [
@@ -45,49 +40,43 @@ class WINP_Insertion_Locations {
 					__( 'Insert Before Post', 'insert-php' ),
 					__( 'Snippet will be placed before the title of the post/page.', 'insert-php' ),
 					[
-						'hide' => '.factory-control-snippet_p_number',
-						'show' => '',
-					]
+						'requiresLocationNumber' => false,
+					],
 				],
 				'before_content'   => [
 					__( 'Insert Before Content', 'insert-php' ),
 					__( 'Snippet will be placed before the content of the post/page.', 'insert-php' ),
 					[
-						'hide' => '.factory-control-snippet_p_number',
-						'show' => '',
-					]
+						'requiresLocationNumber' => false,
+					],
 				],
 				'before_paragraph' => [
 					__( 'Insert Before Paragraph', 'insert-php' ),
-					__( 'Snippet will be placed before the paragraph, which number you can specify in the Location number field.', 'insert-php' ),
+					__( 'Snippet will be placed before the specified paragraph number.', 'insert-php' ),
 					[
-						'hide' => '',
-						'show' => '.factory-control-snippet_p_number',
-					]
+						'requiresLocationNumber' => true,
+					],
 				],
 				'after_paragraph'  => [
 					__( 'Insert After Paragraph', 'insert-php' ),
-					__( 'Snippet will be placed after the paragraph, which number you can specify in the Location number field.', 'insert-php' ),
+					__( 'Snippet will be placed after the specified paragraph number.', 'insert-php' ),
 					[
-						'hide' => '',
-						'show' => '.factory-control-snippet_p_number',
-					]
+						'requiresLocationNumber' => true,
+					],
 				],
 				'after_content'    => [
 					__( 'Insert After Content', 'insert-php' ),
 					__( 'Snippet will be placed after the content of the post/page.', 'insert-php' ),
 					[
-						'hide' => '.factory-control-snippet_p_number',
-						'show' => '',
-					]
+						'requiresLocationNumber' => false,
+					],
 				],
 				'after_post'       => [
 					__( 'Insert After Post', 'insert-php' ),
 					__( 'Snippet will be placed in the very end of the post/page.', 'insert-php' ),
 					[
-						'hide' => '.factory-control-snippet_p_number',
-						'show' => '',
-					]
+						'requiresLocationNumber' => false,
+					],
 				],
 			],
 			'pages'       => [
@@ -95,41 +84,36 @@ class WINP_Insertion_Locations {
 					__( 'Insert Before Excerpt', 'insert-php' ),
 					__( 'Snippet will be placed before the excerpt of the post/page.', 'insert-php' ),
 					[
-						'hide' => '.factory-control-snippet_p_number',
-						'show' => '',
-					]
+						'requiresLocationNumber' => false,
+					],
 				],
 				'after_excerpt'  => [
 					__( 'Insert After Excerpt', 'insert-php' ),
 					__( 'Snippet will be placed after the excerpt of the post/page.', 'insert-php' ),
 					[
-						'hide' => '.factory-control-snippet_p_number',
-						'show' => '',
-					]
+						'requiresLocationNumber' => false,
+					],
 				],
 				'between_posts'  => [
 					__( 'Between Posts', 'insert-php' ),
 					__( 'Snippet will be placed between each post.', 'insert-php' ),
 					[
-						'hide' => '.factory-control-snippet_p_number',
-						'show' => '',
-					]
+						'requiresLocationNumber' => false,
+					],
 				],
 				'before_posts'   => [
 					__( 'Before post', 'insert-php' ),
-					__( 'Snippet will be placed before the post, which number you can specify in the Location number field.', 'insert-php' ),
+					__( 'Snippet will be placed before the specified post number.', 'insert-php' ),
 					[
-						'hide' => '',
-						'show' => '.factory-control-snippet_p_number',
-					]
+						'requiresLocationNumber' => true,
+					],
 				],
 				'after_posts'    => [
 					__( 'After post', 'insert-php' ),
-					__( 'Snippet will be placed after the post, which number you can specify in the Location number field.', 'insert-php' ),
+					__( 'Snippet will be placed after the specified post number.', 'insert-php' ),
 					[
-						'hide' => '',
-						'show' => '.factory-control-snippet_p_number',
-					]
+						'requiresLocationNumber' => true,
+					],
 				],
 			],
 			'woocommerce' => [
@@ -137,73 +121,64 @@ class WINP_Insertion_Locations {
 					__( 'Before the list of products', 'insert-php' ),
 					__( 'Snippet will be placed before the list of products.', 'insert-php' ),
 					[
-						'hide' => '.factory-control-snippet_p_number',
-						'show' => '',
-					]
+						'requiresLocationNumber' => false,
+					],
 				],
 				'woo_after_shop_loop'                => [
 					__( 'After the list of products', 'insert-php' ),
 					__( 'Snippet will be placed after the list of products.', 'insert-php' ),
 					[
-						'hide' => '.factory-control-snippet_p_number',
-						'show' => '',
-					]
+						'requiresLocationNumber' => false,
+					],
 				],
 				'woo_before_single_product'          => [
 					__( 'Before a single product', 'insert-php' ),
-					__( 'Snippet will be placed before a single product', 'insert-php' ),
+					__( 'Snippet will be placed before a single product.', 'insert-php' ),
 					[
-						'hide' => '.factory-control-snippet_p_number',
-						'show' => '',
-					]
+						'requiresLocationNumber' => false,
+					],
 				],
 				'woo_after_single_product'           => [
 					__( 'After a single product', 'insert-php' ),
-					__( 'Snippet will be placed after a single product', 'insert-php' ),
+					__( 'Snippet will be placed after a single product.', 'insert-php' ),
 					[
-						'hide' => '.factory-control-snippet_p_number',
-						'show' => '',
-					]
+						'requiresLocationNumber' => false,
+					],
 				],
 				'woo_before_single_product_summary'  => [
 					__( 'Before a single product summary', 'insert-php' ),
-					__( 'Snippet will be placed before a single product summary', 'insert-php' ),
+					__( 'Snippet will be placed before a single product summary.', 'insert-php' ),
 					[
-						'hide' => '.factory-control-snippet_p_number',
-						'show' => '',
-					]
+						'requiresLocationNumber' => false,
+					],
 				],
 				'woo_after_single_product_summary'   => [
 					__( 'After a single product summary', 'insert-php' ),
-					__( 'Snippet will be placed after a single product summary', 'insert-php' ),
+					__( 'Snippet will be placed after a single product summary.', 'insert-php' ),
 					[
-						'hide' => '.factory-control-snippet_p_number',
-						'show' => '',
-					]
+						'requiresLocationNumber' => false,
+					],
 				],
 				'woo_single_product_summary_title'   => [
 					__( 'After a product title', 'insert-php' ),
-					__( 'Snippet will be placed after a product title', 'insert-php' ),
+					__( 'Snippet will be placed after a product title.', 'insert-php' ),
 					[
-						'hide' => '.factory-control-snippet_p_number',
-						'show' => '',
-					]
+						'requiresLocationNumber' => false,
+					],
 				],
 				'woo_single_product_summary_price'   => [
 					__( 'After a product price', 'insert-php' ),
-					__( 'Snippet will be placed after a product price', 'insert-php' ),
+					__( 'Snippet will be placed after a product price.', 'insert-php' ),
 					[
-						'hide' => '.factory-control-snippet_p_number',
-						'show' => '',
-					]
+						'requiresLocationNumber' => false,
+					],
 				],
 				'woo_single_product_summary_excerpt' => [
 					__( 'After a product excerpt', 'insert-php' ),
-					__( 'Snippet will be placed after a product excerpt', 'insert-php' ),
+					__( 'Snippet will be placed after a product excerpt.', 'insert-php' ),
 					[
-						'hide' => '.factory-control-snippet_p_number',
-						'show' => '',
-					]
+						'requiresLocationNumber' => false,
+					],
 				],
 			],
 		];
@@ -216,13 +191,12 @@ class WINP_Insertion_Locations {
 		 *            __( 'Before 2', 'insert-php' ),
 		 *            __( 'Before 2 desc.', 'insert-php' ),
 		 *          [
-		 *              'hide' => '.factory-control-snippet_p_number',
-		 *              'show' => '',
+		 *              'requiresLocationNumber' => false, // true if location needs paragraph/post number input
 		 *          ]
 		 *      ]
 		 *  ]
 		 *
-		 * @param array The array of custom location data.
+		 * @param array<string, array<string, array<int|string, mixed>>> $locations The array of custom location data.
 		 *
 		 * @since 2.4
 		 */
@@ -298,30 +272,13 @@ class WINP_Insertion_Locations {
 	public function getInsertionForOptions( $insertion ) {
 		$return = [];
 		foreach ( $this->locations[ $insertion ] ?? [] as $key => $locations ) {
-			$return[] = [ $key, $locations[0] ?? '', $locations[1] ?? '' ];
-		}
-
-		return $return;
-	}
-
-	/**
-	 * @return array
-	 */
-	public function getEventsForOptions() {
-		$return = [];
-		$list   = $this->getList();
-		foreach ( $list as $key => $locations ) {
-			if ( isset( $locations[2] ) && is_array( $locations[2] ) ) {
-				$return[ $key ] = $locations[2];
-			} else {
-				$return[ $key ] = [
-					'hide' => '.factory-control-snippet_p_number',
-					'show' => '',
-				];
+			$requires_number = false;
+			if ( isset( $locations[2] ) && is_array( $locations[2] ) && isset( $locations[2]['requiresLocationNumber'] ) ) {
+				$requires_number = $locations[2]['requiresLocationNumber'];
 			}
+			$return[] = [ $key, $locations[0] ?? '', $locations[1] ?? '', $requires_number ];
 		}
 
 		return $return;
 	}
-
 }

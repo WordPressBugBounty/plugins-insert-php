@@ -1901,11 +1901,11 @@ msgid "Where to execute the code?"
 msgstr "Где можно выполнять код?"
 
 #: admin/metaboxes/base-options.php:548
-msgid "Where use:"
+msgid "Location:"
 msgstr "Авто-размещение:"
 
 #: admin/includes/class.snippets.viewtable.php:19
-msgid "Where use?"
+msgid "Location"
 msgstr "Где использовать?"
 
 #: admin/ajax/ajax.php:209 admin/metaboxes/base-options.php:668

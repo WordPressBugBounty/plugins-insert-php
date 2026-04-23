@@ -42,9 +42,7 @@ abstract class WINP_DTO_Base {
 	 */
 	public static function from_json( $json ) {
 		if ( ! is_object( $json ) ) {
-			$class = static::class;
-			// phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped -- Error message for developers only.
-			throw new Exception( "{$class}::from_json() requires an object, " . gettype( $json ) . ' given' );
+			throw new Exception( sprintf( '%s::from_json() requires an object.', static::class ) );
 		}
 
 		return static::from_array( (array) $json );
@@ -67,9 +65,7 @@ abstract class WINP_DTO_Base {
 			} elseif ( is_array( $item ) ) {
 				$result[] = static::from_array( $item );
 			} else {
-				$class = static::class;
-				// phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped -- Error message for developers only.
-				throw new Exception( "Invalid item type in {$class} array: " . gettype( $item ) );
+				throw new Exception( sprintf( 'Invalid item type in %s array.', static::class ) );
 			}
 		}
 
@@ -88,8 +84,13 @@ abstract class WINP_DTO_Base {
 	 */
 	protected static function require_field( array $data, $field_name, $class_name ) {
 		if ( ! isset( $data[ $field_name ] ) ) {
-			// phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped -- Error message for developers only.
-			throw new Exception( "Required field \"{$field_name}\" is missing in {$class_name} data" );
+			throw new Exception(
+				sprintf(
+					'Required field "%1$s" is missing in %2$s data',
+					esc_html( (string) $field_name ),
+					esc_html( (string) $class_name )
+				)
+			);
 		}
 	}
 }

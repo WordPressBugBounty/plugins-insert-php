@@ -148,43 +148,6 @@ add_filter( 'custom_menu_order', '__return_true' );
 add_filter( 'admin_menu', 'wbcr_inp_remove_new_item', 1 );
 
 /**
- * Reorder submenu items to place '+ Add Snippet' as second item
- *
- * @param array<int|string, mixed> $menu Menu items.
- *
- * @return array<int|string, mixed>
- */
-function wbcr_inp_reorder_submenu_items( $menu ) {
-	global $submenu;
-
-	if ( ! isset( $submenu[ 'edit.php?post_type=' . WINP_SNIPPETS_POST_TYPE ] ) ) {
-		return $menu;
-	}
-
-	$snippet_submenu = $submenu[ 'edit.php?post_type=' . WINP_SNIPPETS_POST_TYPE ];
-	$new_item_page   = null;
-	$new_item_key    = null;
-
-	foreach ( $snippet_submenu as $key => $item ) {
-		if ( strpos( $item[2], 'new-item-' ) !== false ) {
-			$new_item_page = $item;
-			$new_item_key  = $key;
-			break;
-		}
-	}
-
-	if ( null !== $new_item_page ) {
-		unset( $submenu[ 'edit.php?post_type=' . WINP_SNIPPETS_POST_TYPE ][ $new_item_key ] );
-		$submenu[ 'edit.php?post_type=' . WINP_SNIPPETS_POST_TYPE ][6] = $new_item_page; // phpcs:ignore WordPress.WP.GlobalVariablesOverride.Prohibited
-		ksort( $submenu[ 'edit.php?post_type=' . WINP_SNIPPETS_POST_TYPE ] );
-	}
-
-	return $menu;
-}
-
-add_filter( 'admin_menu', 'wbcr_inp_reorder_submenu_items', 999 );
-
-/**
  * If the user tried to get access to the default 'new item',
  * redirects forcibly to our page 'new item'.
  *

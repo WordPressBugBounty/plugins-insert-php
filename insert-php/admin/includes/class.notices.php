@@ -295,22 +295,47 @@ class WINP_Notices {
 		$type         = $notice['type'];
 		$dismissible  = $notice['dismissible'] ? 'is-dismissible' : '';
 		$notice_class = "notice notice-{$type} {$dismissible}";
-		
-		$data_attrs = '';
-		if ( $notice['dismissible'] ) {
-			$data_attrs = sprintf( 
-				'data-notice-id="%s" data-nonce="%s"', 
-				esc_attr( $notice['id'] ),
-				wp_create_nonce( 'winp_dismiss_notice_' . $notice['id'] )
-			);
-		}
+		$notice_text  = is_string( $notice['text'] ) ? $notice['text'] : '';
 
-		printf(
-			'<div class="%s winp-admin-notice" %s>%s</div>',
-			esc_attr( $notice_class ),
-			$data_attrs, // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
-			$notice['text'] // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
-		);
+		?>
+		<div
+			class="<?php echo esc_attr( $notice_class ); ?> winp-admin-notice"
+			<?php if ( $notice['dismissible'] ) : ?>
+				data-notice-id="<?php echo esc_attr( $notice['id'] ); ?>"
+				data-nonce="<?php echo esc_attr( wp_create_nonce( 'winp_dismiss_notice_' . $notice['id'] ) ); ?>"
+			<?php endif; ?>
+		>
+			<?php echo wp_kses( $notice_text, $this->get_allowed_notice_html() ); ?>
+		</div>
+		<?php
+	}
+
+	/**
+	 * Allowed HTML markup for notice messages.
+	 *
+	 * @return array<string, array<string, bool>>
+	 */
+	private function get_allowed_notice_html() {
+		$allowed_html = wp_kses_allowed_html( 'post' );
+
+		$allowed_html['a']['class']    = true;
+		$allowed_html['a']['target']   = true;
+		$allowed_html['a']['rel']      = true;
+		$allowed_html['div']['class']  = true;
+		$allowed_html['span']['class'] = true;
+		$allowed_html['details']       = [
+			'class' => true,
+			'open'  => true,
+		];
+		$allowed_html['summary']       = [ 'class' => true ];
+		$allowed_html['code']['class'] = true;
+		$allowed_html['button']        = [
+			'class'    => true,
+			'type'     => true,
+			'disabled' => true,
+		];
+
+		return $allowed_html;
 	}
 
 	/**

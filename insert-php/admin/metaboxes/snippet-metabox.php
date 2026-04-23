@@ -477,12 +477,7 @@ class WINP_Snippet_MetaBox {
 			}
 			$wbcr__has_targeted_link_rel_filters = ( false !== has_filter( 'content_save_pre', 'wp_targeted_link_rel' ) );
 			if ( $wbcr__has_targeted_link_rel_filters ) {
-				if ( function_exists( 'wp_remove_targeted_link_rel_filters' ) ) {
-					// phpcs:ignore WordPress.WP.DeprecatedFunctions.wp_remove_targeted_link_rel_filtersFound -- Fallback provided for WP 6.7+
-					wp_remove_targeted_link_rel_filters();
-				} else {
-					remove_filter( 'content_save_pre', 'wp_targeted_link_rel' );
-				}
+				remove_filter( 'content_save_pre', 'wp_targeted_link_rel' );
 			}
 		}
 
@@ -509,12 +504,7 @@ class WINP_Snippet_MetaBox {
 		}
 
 		if ( $wbcr__has_targeted_link_rel_filters ) {
-			if ( function_exists( 'wp_init_targeted_link_rel_filters' ) ) {
-				// phpcs:ignore WordPress.WP.DeprecatedFunctions.wp_init_targeted_link_rel_filtersFound -- Fallback provided for WP 6.7+
-				wp_init_targeted_link_rel_filters();
-			} else {
-				add_filter( 'content_save_pre', 'wp_targeted_link_rel' );
-			}
+			add_filter( 'content_save_pre', 'wp_targeted_link_rel' );
 		}
 
 		unset( $wbcr__has_kses );
@@ -546,10 +536,18 @@ class WINP_Snippet_MetaBox {
 			$html_flags = defined( 'ENT_HTML5' ) ? ENT_QUOTES | ENT_HTML5 : ENT_QUOTES;
 			$entities   = get_html_translation_table( HTML_ENTITIES, $html_flags );
 
-			unset( $entities[ array_search( '&amp;', $entities ) ] );
+			$amp_entity_key = array_search( '&amp;', $entities, true );
+			if ( false !== $amp_entity_key ) {
+				unset( $entities[ $amp_entity_key ] );
+			}
 
-			// phpcs:ignore WordPressVIPMinimum.Security.StaticStrreplace.StaticStrreplace -- Used for HTML entity handling, not shell execution
-			$regular_expression = str_replace( ';', '', '/(' . implode( '|', $entities ) . ')/i' );
+			$entity_patterns    = array_map(
+				static function ( $entity ) {
+					return preg_quote( rtrim( (string) $entity, ';' ), '/' );
+				},
+				$entities
+			);
+			$regular_expression = '/(' . implode( '|', $entity_patterns ) . ')/i';
 
 			preg_match_all( $regular_expression, $post->post_content, $matches );
 
@@ -1075,9 +1073,9 @@ class WINP_Snippet_MetaBox {
 
 		// Don't save any meta during revision restoration.
 		// During restore, WordPress doesn't send form data, so we should let wp_restore_post_revision handle it.
-		// phpcs:disable WordPress.Security.NonceVerification.Recommended -- We're only reading GET to detect restore, not processing data
-		$is_restoring = isset( $_GET['action'] ) && 'restore' === $_GET['action'] && isset( $_GET['revision'] );
-		// phpcs:enable WordPress.Security.NonceVerification.Recommended
+		$action       = WINP_HTTP::get( 'action', '', 'sanitize_key' );
+		$revision_id  = WINP_HTTP::get( 'revision', 0, 'absint' );
+		$is_restoring = ( 'restore' === $action && ! empty( $revision_id ) );
 		
 		if ( $is_restoring ) {
 			return;
@@ -1095,9 +1093,22 @@ class WINP_Snippet_MetaBox {
 		}
 
 		// Skip if no form data is present (e.g., when trashing/untrashing).
-		// Check if the snippet type field exists in POST - if not, we're not in a form submission context.
-		// phpcs:disable WordPress.Security.NonceVerification.Missing -- We're only checking if field exists to detect form submission, not processing the value
-		if ( ! isset( $_POST['wbcr_inp_snippet_type'] ) ) {
+		$posted_snippet_type = WINP_HTTP::post( 'wbcr_inp_snippet_type', null );
+		if ( null === $posted_snippet_type ) {
+			return;
+		}
+
+		$editor_nonce     = WINP_HTTP::post( WINP_SNIPPETS_POST_TYPE, '', true );
+		$conditions_nonce = WINP_HTTP::post( 'wbcr_inp_snippet_conditions_metabox_nonce', '', true );
+
+		$has_valid_editor_nonce     = is_string( $editor_nonce )
+			&& ! empty( $editor_nonce )
+			&& wp_verify_nonce( $editor_nonce, basename( __FILE__ ) );
+		$has_valid_conditions_nonce = is_string( $conditions_nonce )
+			&& ! empty( $conditions_nonce )
+			&& wp_verify_nonce( $conditions_nonce, 'wbcr_inp_snippet_' . $post_id . '_conditions_metabox' );
+
+		if ( ! $has_valid_editor_nonce && ! $has_valid_conditions_nonce ) {
 			return;
 		}
 
@@ -1128,15 +1139,13 @@ class WINP_Snippet_MetaBox {
 		$priority = WINP_Helper::getMetaOption( $post_id, 'snippet_priority', WINP_Helper::get_next_snippet_priority() );
 		WINP_Helper::updateMetaOption( $post_id, 'snippet_priority', $priority );
 
-		// phpcs:disable WordPress.Security.NonceVerification.Missing -- Nonce verified via wp_nonce_field in metabox
-		$filters_raw = isset( $_POST['wbcr_inp_snippet_filters'] ) ? sanitize_text_field( wp_unslash( $_POST['wbcr_inp_snippet_filters'] ) ) : '';
-		// phpcs:enable WordPress.Security.NonceVerification.Missing
-		$filters = ! empty( $filters_raw ) ? json_decode( stripslashes( $filters_raw ) ) : '';
+		$filters_raw = WINP_HTTP::post( 'wbcr_inp_snippet_filters', '', true );
+		$filters_raw = is_string( $filters_raw ) ? $filters_raw : '';
+		$filters     = ! empty( $filters_raw ) ? json_decode( stripslashes( $filters_raw ) ) : '';
 		WINP_Helper::updateMetaOption( $post_id, 'snippet_filters', $filters );
 
-		// phpcs:disable WordPress.Security.NonceVerification.Missing -- Nonce verified via wp_nonce_field in metabox
-		$changed_filters = isset( $_POST['wbcr_inp_changed_filters'] ) ? intval( $_POST['wbcr_inp_changed_filters'] ) : 0;
-		// phpcs:enable WordPress.Security.NonceVerification.Missing
+		$changed_filters = WINP_HTTP::post( 'wbcr_inp_changed_filters', 0 );
+		$changed_filters = is_numeric( $changed_filters ) ? (int) $changed_filters : 0;
 		WINP_Helper::updateMetaOption( $post_id, 'changed_filters', $changed_filters );
 
 		do_action( 'wbcr/inp/base_option/on_saving_form', $post_id );
@@ -1237,10 +1246,17 @@ class WINP_Snippet_MetaBox {
 		// Set custom error handler to catch warnings and notices.
 		set_error_handler( // phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_set_error_handler
 			function ( $errno, $errstr, $errfile, $errline ) {
+				$error_file = $errfile;
 				// Don't let warnings/notices pass through.
-				if ( strpos( $errfile, "eval()'d code" ) !== false ) {
+				if ( strpos( $error_file, "eval()'d code" ) !== false ) {
 					// Convert warnings/notices to exceptions so we can catch them.
-					throw new ErrorException( $errstr, 0, $errno, $errfile, $errline ); // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped -- Exception constructor parameters, not output. Message is escaped when displayed.
+					throw new ErrorException(
+						esc_html( (string) $errstr ),
+						0,
+						(int) $errno,
+						esc_html( $error_file ),
+						(int) $errline
+					);
 				}
 				return false; // Let PHP handle non-eval errors normally.
 			}

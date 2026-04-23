@@ -173,7 +173,7 @@ class WINP_Rest {
 						],
 					],
 					'permission_callback' => function () {
-						return current_user_can( 'edit_posts' );
+						return current_user_can( 'manage_options' );
 					},
 					'callback'            => [ $this, 'sync_snippet' ],
 				],
@@ -585,7 +585,7 @@ class WINP_Rest {
 		}
 
 		if ( ! empty( $tax_query_conditions ) ) {
-			$conditions['tax_query'] = $tax_query_conditions; // phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_tax_query
+			$conditions['tax_query'] = $tax_query_conditions;
 		}
 
 		// Query snippets.
@@ -630,11 +630,12 @@ class WINP_Rest {
 	/**
 	 * Handle snippet sync to cloud.
 	 *
-	 * @param \WP_REST_Request<array<string, mixed>> $request Rest request.
+	 * @param \WP_REST_Request $request Rest request.
+	 * @phpstan-param \WP_REST_Request<array<string, mixed>> $request
 	 * 
 	 * @return \WP_REST_Response
 	 */
-	public function sync_snippet( \WP_REST_Request $request ) { // phpcs:ignore Squiz.Commenting.FunctionComment.IncorrectTypeHint
+	public function sync_snippet( \WP_REST_Request $request ) {
 		$title      = $request->get_param( 'title' );
 		$snippet_id = absint( $request->get_param( 'id' ) );
 
@@ -647,6 +648,17 @@ class WINP_Rest {
 					'success' => false,
 				],
 				404
+			);
+		}
+
+		// Verify the current user has permission to edit this specific snippet.
+		if ( ! current_user_can( 'edit_post', $snippet_id ) ) {
+			return new \WP_REST_Response(
+				[
+					'message' => __( 'You do not have permission to sync this snippet.', 'insert-php' ),
+					'success' => false,
+				],
+				403
 			);
 		}
 

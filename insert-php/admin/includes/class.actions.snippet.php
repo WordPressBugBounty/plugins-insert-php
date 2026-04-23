@@ -335,20 +335,25 @@ class WINP_Actions_Snippet {
 					$zip_archive->addFromString( $snippet_filename, $json_content );
 				}
 
-				$zip_archive->close();
-				// phpcs:ignore WordPressVIPMinimum.Performance.FetchingRemoteData.FileGetContentsUnknown -- Reading local file from wp_upload_dir(), not remote.
-				$zip_content = file_get_contents( $zippath );
+					$zip_archive->close();
 
-				// Cleanup temporary file.
-				// phpcs:ignore WordPressVIPMinimum.Functions.RestrictedFunctions.file_ops_unlink -- Deleting temporary files in wp_upload_dir().
-				unlink( $zippath );
+				$wp_filesystem = WINP_Helper::get_wp_filesystem();
 
-				return [
-					'filename' => $zipname,
-					'data'     => $zip_content,
-					'count'    => count( $snippets ),
-					'is_zip'   => true,
-				];
+				if ( false !== $wp_filesystem ) {
+					$zip_content = $wp_filesystem->get_contents( $zippath );
+					$wp_filesystem->delete( $zippath, false, 'f' );
+
+					if ( false !== $zip_content && '' !== $zip_content ) {
+						return [
+							'filename' => $zipname,
+							'data'     => $zip_content,
+							'count'    => count( $snippets ),
+							'is_zip'   => true,
+						];
+					}
+				}
+
+				wp_delete_file( $zippath );
 			}
 		}
 
@@ -381,8 +386,13 @@ class WINP_Actions_Snippet {
 
 		// For zip files, output raw binary data. For JSON, encode the data.
 		if ( $is_zip ) {
-			// phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Binary zip file content, escaping would corrupt the file.
-			echo $data;
+			$output        = is_string( $data ) ? $data : (string) $data;
+			$wp_filesystem = WINP_Helper::get_wp_filesystem();
+
+			if ( false !== $wp_filesystem ) {
+				$wp_filesystem->put_contents( 'php://output', $output, false );
+			}
+			exit;
 		} else {
 			echo wp_json_encode( $data, JSON_PRETTY_PRINT );
 		}

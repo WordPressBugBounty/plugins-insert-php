@@ -15,6 +15,27 @@ class WINP_Helper {
 	private static $meta_options = [];
 
 	/**
+	 * Get initialized WordPress filesystem instance.
+	 *
+	 * @return WP_Filesystem_Base|false
+	 */
+	public static function get_wp_filesystem() {
+		global $wp_filesystem;
+
+		if ( ! function_exists( 'WP_Filesystem' ) ) {
+			require_once ABSPATH . 'wp-admin/includes/file.php';
+		}
+
+		WP_Filesystem();
+
+		if ( ! ( $wp_filesystem instanceof WP_Filesystem_Base ) ) {
+			return false;
+		}
+
+		return $wp_filesystem;
+	}
+
+	/**
 	 * @return bool
 	 */
 	public static function is_safe_mode() {

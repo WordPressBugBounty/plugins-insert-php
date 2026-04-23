@@ -56,7 +56,7 @@ if ( ! class_exists( 'WINP_Plugin' ) ) {
 
 			$this->load_global();
 
-			if ( is_admin() ) {
+			if ( is_admin() || WINP_Helper::doing_rest_api() ) {
 
 				if ( WINP_Helper::doing_ajax() ) {
 					require WINP_PLUGIN_DIR . '/admin/ajax/ajax.php';
@@ -71,15 +71,16 @@ if ( ! class_exists( 'WINP_Plugin' ) ) {
 					if ( WINP_Plugin::app()->premium->is_active() ) {
 						update_option( WINP_PLUGIN_NAMESPACE . '_logger_flag', 'yes' );
 					}
-				} 
+				}
 			);
 
 			add_filter( WINP_PLUGIN_NAMESPACE . '_logger_data', [ $this, 'get_logger_data' ] );
+			add_filter( 'themeisle_sdk_blackfriday_data', [ $this, 'add_black_friday_data' ] );
 		}
 
 		/**
 		 * Get plugin instance
-		 * 
+		 *
 		 * @return WINP_Plugin
 		 */
 		public static function app() {
@@ -88,7 +89,7 @@ if ( ! class_exists( 'WINP_Plugin' ) ) {
 
 		/**
 		 * Survey data.
-		 * 
+		 *
 		 * @return array<string, mixed>
 		 */
 		public function get_survey_data() {
@@ -165,12 +166,12 @@ if ( ! class_exists( 'WINP_Plugin' ) ) {
 		public function activation_hook() {
 			// Add custom capabilities to administrator role.
 			$this->snippets_type->add_capabilities();
-			
+
 			// Create demo snippets with examples of use.
 			if ( ! get_option( 'wbcr_inp_demo_snippets_created' ) ) {
 				WINP_Helper::create_demo_snippets();
 			}
-			
+
 			WINP_Helper::flush_page_cache();
 		}
 
@@ -292,7 +293,7 @@ if ( ! class_exists( 'WINP_Plugin' ) ) {
 
 		/**
 		 * Logger data.
-		 * 
+		 *
 		 * @return array<string, mixed>
 		 */
 		public function get_logger_data() {
@@ -315,7 +316,7 @@ if ( ! class_exists( 'WINP_Plugin' ) ) {
 			// Count snippets by type.
 			$snippet_types = [ 'php', 'css', 'js', 'text', 'html', 'advert', 'universal' ];
 			$types_count   = [];
-			
+
 			foreach ( $snippet_types as $type ) {
 				$count = get_posts(
 					[
@@ -327,7 +328,7 @@ if ( ! class_exists( 'WINP_Plugin' ) ) {
 						'fields'         => 'ids',
 					]
 				);
-				
+
 				if ( ! empty( $count ) ) {
 					$types_count[ $type ] = count( $count );
 				}
@@ -340,6 +341,68 @@ if ( ! class_exists( 'WINP_Plugin' ) ) {
 					'types'          => $types_count,
 				],
 			];
+		}
+
+		/**
+		 * Set the black friday data.
+		 *
+		 * @param array<string, mixed> $configs The configuration array for the loaded products.
+		 *
+		 * @return array<string, mixed> The configurations.
+		 */
+		public function add_black_friday_data( $configs ) {
+			$config = $configs['default'];
+
+			$message   = __( 'Conditional logic, revision history, import/export. Manage your custom code properly. Exclusively for existing Woody users.', 'insert-php' );
+			$cta_label = __( 'Get Woody Pro', 'insert-php' );
+
+			$plan             = apply_filters( 'product_woody_license_plan', 0 );
+			$status           = apply_filters( 'product_woody_license_status', 'invalid' );
+			$license          = apply_filters( 'product_woody_license_key', false );
+			$pro_product_slug = defined( 'WASP_PLUGIN_FILE' ) ? basename( dirname( WASP_PLUGIN_FILE ) ) : '';
+
+			$is_pro     = 'valid' === $status;
+			$is_expired = 'expired' === $status || 'active-expired' === $status;
+
+			if ( $is_pro ) {
+				// translators: %s is the discount percentage.
+				$config['plugin_meta_message'] = sprintf( __( 'Black Friday Sale - up to %s off', 'insert-php' ), '30%' );
+				// translators: %1$s - discount, %2$s - discount.
+				$message   = sprintf( __( 'Upgrade your Woody Pro plan: %1$s off this week. Already on the plan you need? Renew early and save up to %2$s.', 'insert-php' ), '30%', '20%' );
+				$cta_label = __( 'See your options', 'insert-php' );
+			} elseif ( $is_expired ) {
+				// translators: %s is the discount percentage.
+				$config['plugin_meta_message'] = sprintf( __( 'Black Friday Sale - %s off', 'insert-php' ), '50%' );
+				$message                       = __( 'Your Woody Pro features are still here, just locked. Renew at a reduced rate this week.', 'insert-php' );
+				$cta_label                     = __( 'Reactivate now', 'insert-php' );
+			} else {
+				// translators: %s - discount.
+				$config['title'] = sprintf( __( 'Woody Pro: %s off this week', 'insert-php' ), '60%' );
+				// translators: %s is the discount percentage.
+				$config['plugin_meta_message'] = sprintf( __( 'Black Friday Sale - %s off', 'insert-php' ), '60%' );
+			}
+
+			$url_params = [
+				'utm_term' => $is_pro ? 'plan-' . $plan : 'free',
+				'lkey'     => ! empty( $license ) ? $license : false,
+				'expired'  => $is_expired ? '1' : false,
+			];
+
+			if ( ( $is_pro || $is_expired ) && ! empty( $pro_product_slug ) ) {
+				$config['plugin_meta_targets'] = [ $pro_product_slug ];
+			}
+
+			$config['cta_label'] = $cta_label;
+			$config['message']   = $message;
+
+			$config['sale_url'] = add_query_arg(
+				$url_params,
+				tsdk_translate_link( tsdk_utmify( 'https://themeisle.link/woody-bf', 'bfcm', 'woody' ) )
+			);
+
+			$configs[ WINP_PLUGIN_SLUG ] = $config;
+
+			return $configs;
 		}
 	}
 }

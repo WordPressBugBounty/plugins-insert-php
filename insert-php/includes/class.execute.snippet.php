@@ -986,7 +986,7 @@ class WINP_Execute_Snippet {
 		];
 
 		// Send email.
-		$sent = wp_mail( $email_address, $subject, $email_body, $headers ); // phpcs:ignore WordPressVIPMinimum.Functions.RestrictedFunctions.wp_mail_wp_mail
+		$sent = wp_mail( $email_address, $subject, $email_body, $headers );
 
 		// If email sent successfully, mark this error as emailed.
 		if ( $sent ) {
@@ -1422,7 +1422,8 @@ class WINP_Execute_Snippet {
 			if ( ! isset( $value->units ) || ! isset( $value->unitsCount ) ) { // phpcs:ignore WordPress.NamingConventions.ValidVariableName.UsedPropertyNotSnakeCase
 				return 0;
 			}
-			return ( current_time( 'timestamp' ) - $this->get_timestamp( $value->units, $value->unitsCount ) ) * 1000; // phpcs:ignore WordPress.NamingConventions.ValidVariableName.UsedPropertyNotSnakeCase, WordPress.DateTime.CurrentTimeTimestamp.Requested
+			$current_timestamp = current_datetime()->getTimestamp();
+			return ( $current_timestamp - $this->get_timestamp( $value->units, $value->unitsCount ) ) * 1000; // phpcs:ignore WordPress.NamingConventions.ValidVariableName.UsedPropertyNotSnakeCase
 		} else {
 			return $value;
 		}

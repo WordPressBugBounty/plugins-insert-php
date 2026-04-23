@@ -4,7 +4,7 @@ Tags: code snippets, header footer scripts, insert php, custom code, snippet
 Requires at least: 5.6
 Tested up to: 6.9
 Requires PHP: 7.0
-Stable tag: 2.7.2
+Stable tag: 2.7.3
 License: GPLv2 or later
 License URI: http://www.gnu.org/licenses/gpl-2.0.html
 
@@ -280,6 +280,18 @@ The plugin doesn’t support multi-sites setup.
 7. Use custom shortcode names for reusing snippets
 
 == Changelog ==
+
+#####   Version 2.7.3 (2026-04-23)
+
+- Added an option to disable the Active Snippets notice from the menu
+- Fixed issue with tags area is not visible unless you enable/disable it from Screen Options
+- Fixed issue with text snippets paragraph formatting when rendered via shortcode
+- Fixed issue where Tags and Custom shortcode names are not imported when importing snippets
+- Enhanced security
+- Updated dependencies
+
+
+
 
 #####   Version 2.7.2 (2026-01-27)
 

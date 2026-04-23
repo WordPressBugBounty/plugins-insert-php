@@ -136,10 +136,8 @@ class WINP_Common_Snippet {
 		
 		if ( ! empty( $post ) && is_object( $post ) && isset( $post->ID ) ) {
 			$post_id = $post->ID;
-		} elseif ( ! empty( $_GET['post'] ) ) { // phpcs:ignore WordPress.Security.NonceVerification.Recommended
-			$post_id = absint( $_GET['post'] ); // phpcs:ignore WordPress.Security.NonceVerification.Recommended
 		} else {
-			$post_id = WINP_HTTP::get( 'post', null );
+			$post_id = WINP_HTTP::get( 'post', null, 'absint' );
 		}
 		
 		$type = WINP_Helper::get_snippet_type( $post_id );
@@ -197,10 +195,8 @@ class WINP_Common_Snippet {
 			
 			if ( ! empty( $post ) && is_object( $post ) && isset( $post->ID ) ) {
 				$post_id = $post->ID;
-			} elseif ( ! empty( $_GET['post'] ) ) { // phpcs:ignore WordPress.Security.NonceVerification.Recommended
-				$post_id = absint( $_GET['post'] ); // phpcs:ignore WordPress.Security.NonceVerification.Recommended
 			} else {
-				$post_id = WINP_HTTP::get( 'post', null );
+				$post_id = WINP_HTTP::get( 'post', null, 'absint' );
 			}
 			
 			if ( ! empty( $post_id ) ) {

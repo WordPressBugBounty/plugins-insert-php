@@ -213,16 +213,18 @@ class WINP_Import_Snippet {
 			$iterator = new DirectoryIterator( $dir_path );
 			foreach ( $iterator as $file_info ) {
 				if ( $file_info->isFile() ) {
-					// phpcs:ignore WordPressVIPMinimum.Functions.RestrictedFunctions.file_ops_unlink -- Deleting temporary files in wp_upload_dir().
-					unlink( $file_info->getPathname() );
+					wp_delete_file( $file_info->getPathname() );
 				}
 			}
 		} catch ( Exception $e ) {
 			return;
 		}
 
-		// phpcs:ignore WordPressVIPMinimum.Functions.RestrictedFunctions.directory_rmdir -- Deleting temporary directory in wp_upload_dir().
-		rmdir( $dir_path );
+		$wp_filesystem = WINP_Helper::get_wp_filesystem();
+
+		if ( false !== $wp_filesystem ) {
+			$wp_filesystem->rmdir( $dir_path, true );
+		}
 	}
 
 	/**
@@ -293,6 +295,7 @@ class WINP_Import_Snippet {
 		$this->update_meta( $snippet['id'], 'snippet_tags', $snippet['attributes'] );
 		$this->update_meta( $snippet['id'], 'snippet_activate', 0 );
 		$this->update_meta( $snippet['id'], 'snippet_priority', $snippet['priority'] );
+		$this->update_meta( $snippet['id'], 'snippet_custom_name', $snippet['custom_name'] );
 
 		$this->update_taxonomy_tags( $snippet['id'], $snippet['tags'] );
 

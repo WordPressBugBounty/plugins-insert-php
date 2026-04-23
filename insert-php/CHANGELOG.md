@@ -1,3 +1,12 @@
+#####   Version 2.7.3 (2026-04-23)
+
+- Added an option to disable the Active Snippets notice from the menu
+- Fixed issue with tags area is not visible unless you enable/disable it from Screen Options
+- Fixed issue with text snippets paragraph formatting when rendered via shortcode
+- Fixed issue where Tags and Custom shortcode names are not imported when importing snippets
+- Enhanced security
+- Updated dependencies
+
 #####   Version 2.7.2 (2026-01-27)
 
 - This release focuses on improving the security and robustness of snippet type handling in the codebase.

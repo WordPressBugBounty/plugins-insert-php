@@ -380,6 +380,11 @@ class WINP_Admin_Bar {
 			return;
 		}
 
+		// Add a filter to allow disabling the admin bar menu.
+		if ( ! apply_filters( 'winp_show_admin_bar_menu', true ) ) {
+			return;
+		}
+		
 		// Get active snippets (static for now).
 		$this->collect_active_snippets();
 

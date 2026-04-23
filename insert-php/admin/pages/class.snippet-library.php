@@ -73,9 +73,9 @@ class WINP_SnippetLibrary {
 		$library_tab     = false;
 		$my_snippets_url = esc_url_raw( remove_query_arg( [ 'tab' ] ) );
 		$library_url     = esc_url_raw( add_query_arg( 'tab', 'library', $my_snippets_url ) );
+		$current_tab     = WINP_HTTP::get( 'tab', '', 'sanitize_key' );
 
-		// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Just checking tab parameter for UI display
-		if ( isset( $_GET['tab'] ) && 'library' === $_GET['tab'] ) {
+		if ( 'library' === $current_tab ) {
 			$my_snippets_tab = false;
 			$library_tab     = true;
 		}
@@ -117,9 +117,8 @@ class WINP_SnippetLibrary {
 	private function render_html( bool $common ): void {
 		$snippet_list_table = new WINP_Snippet_Library_Table();
 
-		$is_pro = WINP_Plugin::app()->get_api_object()->is_key();
-		// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Just checking tab parameter for display logic
-		$is_library_tab = isset( $_GET['tab'] ) && 'library' === $_GET['tab'];
+		$is_pro         = WINP_Plugin::app()->get_api_object()->is_key();
+		$is_library_tab = 'library' === WINP_HTTP::get( 'tab', '', 'sanitize_key' );
 		
 		if ( $is_pro || $is_library_tab ) :
 			?>

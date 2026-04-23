@@ -249,6 +249,7 @@ class WINP_SnippetsType {
 		}
 
 		$singular = $this->singular_title;
+		$revision = WINP_HTTP::get( 'revision', 0, 'absint' );
 
 		$messages[ $this->name ] = [
 			0  => '', // Unused. Messages start at index 1.
@@ -256,11 +257,11 @@ class WINP_SnippetsType {
 			2  => __( 'Custom field updated successfully.', 'insert-php' ),
 			3  => __( 'Custom field deleted.', 'insert-php' ),
 			4  => $singular . ' ' . __( 'updated.', 'insert-php' ),
-			5  => isset( $_GET['revision'] ) // phpcs:ignore WordPress.Security.NonceVerification.Recommended
+			5  => ! empty( $revision )
 				? $singular . ' ' . sprintf(
 					/* translators: %s: revision title */
 					__( 'restored to revision from %s', 'insert-php' ),
-					wp_post_revision_title( (int) $_GET['revision'], false ) // phpcs:ignore WordPress.Security.NonceVerification.Recommended
+					wp_post_revision_title( $revision, false )
 				)
 				: false,
 			6  => $singular . ' ' . __( 'created.', 'insert-php' ),

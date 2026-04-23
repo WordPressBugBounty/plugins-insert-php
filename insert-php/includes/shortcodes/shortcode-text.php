@@ -59,6 +59,6 @@ class WINP_SnippetShortcodeText extends WINP_SnippetShortcode {
 		 */
 		$post_content = apply_filters( 'wbcr/inp/snippet/shortcode_text/post_content', $post_content, $id );
 
-		echo str_replace( '{{SNIPPET_CONTENT}}', $content, $post_content );
+		echo wp_kses_post( wpautop( str_replace( '{{SNIPPET_CONTENT}}', $content, $post_content ) ) );
 	}
 }

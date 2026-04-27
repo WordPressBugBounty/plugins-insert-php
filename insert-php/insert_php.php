@@ -4,7 +4,7 @@
  * Plugin URI: https://woodysnippet.com/
  * Description: Executes PHP code, uses conditional logic to insert ads, text, media content and external service's code. Ensures no content duplication.
  * Author: Themeisle
- * Version: 2.7.3
+ * Version: 2.7.4
  * WordPress Available:  yes
  * Requires License:    no
  * Text Domain: insert-php
@@ -41,7 +41,7 @@ $wbcr_inp_safe_mode = false;
 // Set the constant that the plugin is activated.
 define( 'WINP_PLUGIN_ACTIVE', true );
 
-define( 'WINP_PLUGIN_VERSION', '2.7.3' );
+define( 'WINP_PLUGIN_VERSION', '2.7.4' );
 
 // Root directory of the plugin.
 define( 'WINP_PLUGIN_DIR', __DIR__ );
@@ -170,6 +170,10 @@ require_once WINP_PLUGIN_DIR . '/includes/class.http.php';
 require_once WINP_PLUGIN_DIR . '/includes/class.helpers.php';
 require_once WINP_PLUGIN_DIR . '/includes/class.plugin.php';
 
+if ( file_exists( WINP_PLUGIN_DIR . '/vendor/autoload.php' ) ) {
+	require_once WINP_PLUGIN_DIR . '/vendor/autoload.php';
+}
+
 /**
  * Adds a hint and button to the fatal error message.
  *
@@ -295,7 +299,6 @@ add_action(
 		$winp_snippets_locations = new WINP_Insertion_Locations();
 
 		try {
-			require_once WINP_PLUGIN_DIR . '/vendor/autoload.php';
 			new WINP_Plugin();
 		} catch ( Exception $exception ) {
 			// Plugin wasn't initialized due to an error

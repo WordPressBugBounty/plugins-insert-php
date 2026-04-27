@@ -1,3 +1,7 @@
+#####   Version 2.7.4 (2026-04-27)
+
+- Fixed error caused by dependencies
+
 #####   Version 2.7.3 (2026-04-23)
 
 - Added an option to disable the Active Snippets notice from the menu

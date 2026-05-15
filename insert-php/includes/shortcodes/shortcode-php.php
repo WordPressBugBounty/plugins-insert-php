@@ -61,6 +61,15 @@ class WINP_SnippetShortcodePhp extends WINP_SnippetShortcode {
 		// Track shortcode execution.
 		WINP_Plugin::app()->get_execute_object()->track_shortcode_snippet( $id );
 
+		// Initialize error handler.
+		WINP_Error_Handler::init();
+
+		// Set current snippet context for error handler.
+		WINP_Error_Handler::set_current_snippet( $id, $snippet->post_title, $snippet_content );
+
 		eval( $snippet_content );
+
+		// Clear snippet context after execution.
+		WINP_Error_Handler::clear_current_snippet();
 	}
 }

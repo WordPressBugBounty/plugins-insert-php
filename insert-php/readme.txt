@@ -1,14 +1,14 @@
 === Woody Code Snippets – Insert PHP, CSS, JS, and Header/Footer Scripts ===
 Contributors: themeisle
-Tags: code snippets, header footer scripts, insert php, custom code, snippet
+Tags: code snippets, php, insert php, header footer, custom css
 Requires at least: 5.6
 Tested up to: 6.9
 Requires PHP: 7.0
-Stable tag: 2.7.4
+Stable tag: 2.7.5
 License: GPLv2 or later
 License URI: http://www.gnu.org/licenses/gpl-2.0.html
 
-Insert PHP, JavaScript, CSS, HTML, ads, and tracking code into WordPress headers, footers, pages, and content using conditional logic, without editing theme files.
+Insert PHP, JavaScript, CSS, HTML, ads & tracking code into WordPress headers, footers, pages & content with conditional logic — no theme editing.
 
 == Description ==
 
@@ -280,6 +280,14 @@ The plugin doesn’t support multi-sites setup.
 7. Use custom shortcode names for reusing snippets
 
 == Changelog ==
+
+#####   Version 2.7.5 (2026-05-15)
+
+- Improved compatibility with PHP 8.1
+- Added display of actual PHP error message on the snippet error splash page
+
+
+
 
 #####   Version 2.7.4 (2026-04-27)
 

@@ -132,7 +132,7 @@ class WINP_Helper {
 				$snippet_type = self::get_snippet_type( $snippet->ID );
 
 				$available_tags = self::getMetaOption( $snippet->ID, 'snippet_tags' );
-				$available_tags = trim( rtrim( $available_tags ) );
+				$available_tags = ! empty( $available_tags ) ? trim( rtrim( $available_tags ) ) : '';
 
 				if ( ! empty( $available_tags ) ) {
 					$available_tags = array_map( 'trim', explode( ',', $available_tags ) );

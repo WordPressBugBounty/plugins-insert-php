@@ -1,3 +1,8 @@
+#####   Version 2.7.5 (2026-05-15)
+
+- Improved compatibility with PHP 8.1
+- Added display of actual PHP error message on the snippet error splash page
+
 #####   Version 2.7.4 (2026-04-27)
 
 - Fixed error caused by dependencies

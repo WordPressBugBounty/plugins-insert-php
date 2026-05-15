@@ -1,9 +1,9 @@
 <?php return array(
     'root' => array(
         'name' => 'codeinwp/insert-php',
-        'pretty_version' => 'v2.7.4',
-        'version' => '2.7.4.0',
-        'reference' => 'da2be0288d50686b0eda01cf3cca64ce586858d9',
+        'pretty_version' => 'v2.7.5',
+        'version' => '2.7.5.0',
+        'reference' => 'c90625eceb08189e84e272eee65d9ea53ed940ee',
         'type' => 'library',
         'install_path' => __DIR__ . '/../../',
         'aliases' => array(),
@@ -11,9 +11,9 @@
     ),
     'versions' => array(
         'codeinwp/insert-php' => array(
-            'pretty_version' => 'v2.7.4',
-            'version' => '2.7.4.0',
-            'reference' => 'da2be0288d50686b0eda01cf3cca64ce586858d9',
+            'pretty_version' => 'v2.7.5',
+            'version' => '2.7.5.0',
+            'reference' => 'c90625eceb08189e84e272eee65d9ea53ed940ee',
             'type' => 'library',
             'install_path' => __DIR__ . '/../../',
             'aliases' => array(),

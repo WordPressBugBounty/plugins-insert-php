@@ -2,9 +2,9 @@
 Contributors: themeisle
 Tags: code snippets, php, insert php, header footer, custom css
 Requires at least: 5.6
-Tested up to: 6.9
+Tested up to: 7.0
 Requires PHP: 7.0
-Stable tag: 2.7.5
+Stable tag: 2.7.6
 License: GPLv2 or later
 License URI: http://www.gnu.org/licenses/gpl-2.0.html
 
@@ -280,6 +280,15 @@ The plugin doesn’t support multi-sites setup.
 7. Use custom shortcode names for reusing snippets
 
 == Changelog ==
+
+#####   Version 2.7.6 (2026-07-22)
+
+- Fixed a PHP warning that could appear in server logs when the plugin checked incoming REST API requests.
+- Fixed an issue where a snippet error message could be shown to site visitors instead of only to administrators.
+- Updated dependencies
+
+
+
 
 #####   Version 2.7.5 (2026-05-15)
 

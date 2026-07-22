@@ -22,7 +22,7 @@ class WINP_SnippetShortcodeText extends WINP_SnippetShortcode {
 	public function html( $attr, $content, $tag ) {
 		$id = $this->get_snippet_id( $attr, WINP_SNIPPET_TYPE_TEXT );
 
-		if ( ! $id ) {
+		if ( ! $id && ( current_user_can( 'manage_options' ) || ( defined( 'WP_DEBUG' ) && WP_DEBUG ) ) ) {
 			/* translators: %s: Shortcode tag name */
 			echo '<span style="color:red">' . sprintf( esc_html__( '[%s]: Text snippets error (not passed the snippet ID)', 'insert-php' ), esc_html( $tag ) ) . '</span>';
 

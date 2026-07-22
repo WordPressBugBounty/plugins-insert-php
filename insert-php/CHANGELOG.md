@@ -1,3 +1,9 @@
+#####   Version 2.7.6 (2026-07-22)
+
+- Fixed a PHP warning that could appear in server logs when the plugin checked incoming REST API requests.
+- Fixed an issue where a snippet error message could be shown to site visitors instead of only to administrators.
+- Updated dependencies
+
 #####   Version 2.7.5 (2026-05-15)
 
 - Improved compatibility with PHP 8.1

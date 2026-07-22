@@ -236,6 +236,10 @@ class WINP_Helper {
 		$rest_url    = wp_parse_url( site_url( $prefix ) );
 		$current_url = wp_parse_url( esc_url( add_query_arg( [] ) ) );
 
+		if ( empty( $rest_url['path'] ) || empty( $current_url['path'] ) ) {
+			return false;
+		}
+
 		return strpos( $current_url['path'], $rest_url['path'], 0 ) === 0;
 	}
 

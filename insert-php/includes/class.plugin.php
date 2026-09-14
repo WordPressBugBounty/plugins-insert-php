@@ -29,7 +29,7 @@ if ( ! class_exists( 'WINP_Plugin' ) ) {
 		/**
 		 * Snippets custom post type instance.
 		 *
-		 * @var WINP_SnippetsType
+		 * @var WINP_SnippetsType|null
 		 */
 		private $snippets_type;
 
@@ -165,7 +165,7 @@ if ( ! class_exists( 'WINP_Plugin' ) ) {
 		 */
 		public function activation_hook() {
 			// Add custom capabilities to administrator role.
-			$this->snippets_type->add_capabilities();
+			$this->get_snippets_type()->add_capabilities();
 
 			// Create demo snippets with examples of use.
 			if ( ! get_option( 'wbcr_inp_demo_snippets_created' ) ) {
@@ -183,7 +183,26 @@ if ( ! class_exists( 'WINP_Plugin' ) ) {
 		 */
 		public function deactivation_hook() {
 			// Remove custom capabilities from administrator role.
-			$this->snippets_type->remove_capabilities();
+			$this->get_snippets_type()->remove_capabilities();
+		}
+
+		/**
+		 * Get the snippets post type handler, loading it on demand.
+		 *
+		 * The (de)activation hooks can run outside of admin/REST requests
+		 * (e.g. `wp plugin activate` via WP-CLI), where load_backend() and
+		 * therefore register_types() never ran.
+		 *
+		 * @return WINP_SnippetsType
+		 */
+		private function get_snippets_type() {
+			if ( is_null( $this->snippets_type ) ) {
+				require_once WINP_PLUGIN_DIR . '/admin/includes/class.snippets.viewtable.php';
+				require_once WINP_PLUGIN_DIR . '/admin/types/snippets-post-types.php';
+				$this->snippets_type = new WINP_SnippetsType();
+			}
+
+			return $this->snippets_type;
 		}
 
 		/**

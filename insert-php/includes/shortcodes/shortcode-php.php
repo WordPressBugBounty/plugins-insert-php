@@ -15,16 +15,19 @@ class WINP_SnippetShortcodePhp extends WINP_SnippetShortcode {
 	/**
 	 * Content render
 	 *
-	 * @param array  $attr
-	 * @param string $content
-	 * @param string $tag
+	 * @param array  $attr    Shortcode attributes.
+	 * @param string $content Enclosed shortcode content.
+	 * @param string $tag     Shortcode tag.
+	 * @return mixed Rendered snippet output, if any.
 	 */
 	public function html( $attr, $content, $tag ) {
 		$id = $this->get_snippet_id( $attr, WINP_SNIPPET_TYPE_PHP );
 
-		if ( ! $id && ( current_user_can( 'manage_options' ) || ( defined( 'WP_DEBUG' ) && WP_DEBUG ) ) ) {
-			/* translators: %s: Shortcode tag name */
-			echo '<span style="color:red">' . sprintf( esc_html__( '[%s]: PHP snippets error (not passed the snippet ID)', 'insert-php' ), esc_html( $tag ) ) . '</span>';
+		if ( ! $id ) {
+			if ( current_user_can( 'manage_options' ) || ( defined( 'WP_DEBUG' ) && WP_DEBUG ) ) {
+				/* translators: %s: Shortcode tag name */
+				echo '<span style="color:red">' . sprintf( esc_html__( '[%s]: PHP snippets error (not passed the snippet ID)', 'insert-php' ), esc_html( $tag ) ) . '</span>';
+			}
 
 			return;
 		}
@@ -67,9 +70,28 @@ class WINP_SnippetShortcodePhp extends WINP_SnippetShortcode {
 		// Set current snippet context for error handler.
 		WINP_Error_Handler::set_current_snippet( $id, $snippet->post_title, $snippet_content );
 
-		eval( $snippet_content );
+		$buffer_level = ob_get_level();
+		ob_start();
 
-		// Clear snippet context after execution.
-		WINP_Error_Handler::clear_current_snippet();
+		try {
+			eval( $snippet_content );
+
+			// Preserve output from buffers opened by the snippet itself.
+			while ( ob_get_level() > $buffer_level + 1 ) {
+				ob_end_flush();
+			}
+
+			$snippet_output = ob_get_clean();
+			return false !== $snippet_output ? $snippet_output : '';
+		} catch ( Throwable $exception ) {
+			while ( ob_get_level() > $buffer_level ) {
+				ob_end_clean();
+			}
+
+			return WINP_Error_Handler::handle_exception( $exception );
+		} finally {
+			// Clear snippet context after execution.
+			WINP_Error_Handler::clear_current_snippet();
+		}
 	}
 }

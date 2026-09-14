@@ -311,6 +311,17 @@ function wbcr_inp_ajax_validate_snippet() {
 			wp_send_json_success( [ 'valid' => true ] );
 		}
 
+		$redeclaration = WINP_Code_Validator::find_function_redeclaration( $snippet_code, $snippet_type );
+		if ( null !== $redeclaration ) {
+			wp_send_json_error(
+				[
+					'valid'   => false,
+					// translators: %1$d is the line number, %2$s is the fully qualified function name.
+					'message' => sprintf( __( 'Line %1$d: Cannot redeclare function %2$s(). Rename the function or guard its declaration with function_exists().', 'insert-php' ), $redeclaration['line'], $redeclaration['name'] ),
+				]
+			);
+		}
+
 		// Validate using the same logic as validate_code method.
 		$validation_errors = [];
 		

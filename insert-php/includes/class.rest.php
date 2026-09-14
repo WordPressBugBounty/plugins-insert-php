@@ -308,6 +308,13 @@ class WINP_Rest {
 		}
 
 		foreach ( $data as $key => $value ) {
+			if ( false === $value ) {
+				// update_option() short-circuits when storing `false` over a
+				// missing option (both compare equal), so a default-enabled
+				// checkbox could never be persisted as disabled.
+				$value = '';
+			}
+
 			update_option( 'wbcr_inp_' . $key, $value );
 		}
 

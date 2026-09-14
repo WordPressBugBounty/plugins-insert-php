@@ -1,3 +1,15 @@
+#####   Version 2.7.7 (2026-09-14)
+
+- Improved the plugins reliability with expanded automated testing
+- Fixed fatal PHP error details missing from the Safe Mode screen for administrators.
+- Fixed PHP shortcodes crashing pages when a stored snippet has invalid PHP.
+- Improved the Woody Snippets block setup when no snippets are available.
+- Fixed PHP shortcodes that stopped page indexing after a snippet error.
+- Fixed Safe Mode to stop all shortcode snippets for administrators.
+- Fixed PHP shortcodes that could crash pages after a snippet runtime error.
+- Fixed snippet saves that crashed when a function name was already in use.
+- Fixed frontend pages stopping when a PHP shortcode snippet has a runtime error.
+
 #####   Version 2.7.6 (2026-07-22)
 
 - Fixed a PHP warning that could appear in server logs when the plugin checked incoming REST API requests.

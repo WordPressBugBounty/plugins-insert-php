@@ -81,9 +81,18 @@ class WINP_SnippetShortcode {
 	 * @return string
 	 */
 	public function render( $attr, $content, $tag ) {
+		if ( WINP_Helper::is_safe_mode() ) {
+			return '';
+		}
+
 		ob_start();
-		$this->html( $attr, $content ?? '', $tag );
-		$html = ob_get_clean();
+		$result = $this->html( $attr, $content ?? '', $tag );
+		$html   = ob_get_clean();
+
+		if ( is_string( $result ) ) {
+			$html = ( false !== $html ? $html : '' ) . $result;
+		}
+
 		return false !== $html ? $html : '';
 	}
 
@@ -227,7 +236,7 @@ class WINP_SnippetShortcode {
 	 * @param string               $content Shortcode content.
 	 * @param string               $tag     Shortcode tag.
 	 *
-	 * @return void
+	 * @return mixed Rendered content when returned directly, if any.
 	 */
 	public function html( $attr, $content, $tag ) {
 	}

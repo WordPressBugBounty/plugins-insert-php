@@ -786,15 +786,20 @@ class WINP_Execute_Snippet {
 			return false;
 		}
 
-		$snippet_type = WINP_Helper::getMetaOption( $id, 'snippet_type', true );
+		$snippet_type  = WINP_Helper::getMetaOption( $id, 'snippet_type', true );
+		$is_executable = in_array( $snippet_type, [ WINP_SNIPPET_TYPE_PHP, WINP_SNIPPET_TYPE_UNIVERSAL ], true );
 
-		// Set current snippet ID for error handling.
-		self::$current_snippet_id = $id;
+		if ( $is_executable ) {
+			// Preserve the active snippet context if execution terminates the request.
+			self::$current_snippet_id = $id;
+			WINP_Error_Handler::init();
+			WINP_Error_Handler::set_current_snippet( $id, $snippet->post_title );
 
-		// Register shutdown function once to catch fatal errors.
-		if ( ! self::$shutdown_registered ) {
-			register_shutdown_function( [ $this, 'handle_snippet_shutdown' ] );
-			self::$shutdown_registered = true;
+			// Register shutdown function once to catch fatal errors.
+			if ( ! self::$shutdown_registered ) {
+				register_shutdown_function( [ $this, 'handle_snippet_shutdown' ] );
+				self::$shutdown_registered = true;
+			}
 		}
 
 		if ( $snippet_type == WINP_SNIPPET_TYPE_UNIVERSAL ) {
@@ -803,6 +808,11 @@ class WINP_Execute_Snippet {
 			$result = eval( $code );
 		} else {
 			$result = ! empty( $code );
+		}
+
+		if ( $is_executable ) {
+			self::$current_snippet_id = 0;
+			WINP_Error_Handler::clear_current_snippet();
 		}
 
 		if ( $catch_output ) {

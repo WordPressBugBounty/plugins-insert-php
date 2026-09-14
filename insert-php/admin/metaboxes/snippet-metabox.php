@@ -1243,6 +1243,19 @@ class WINP_Snippet_MetaBox {
 			return true;
 		}
 
+		$redeclaration = WINP_Code_Validator::find_function_redeclaration( $snippet_code, $snippet_type );
+		if ( null !== $redeclaration ) {
+			$this->display_validation_error(
+				$redeclaration['line'],
+				sprintf(
+					// translators: %s is the fully qualified function name.
+					__( 'Cannot redeclare function %s(). Rename the function or guard its declaration with function_exists().', 'insert-php' ),
+					$redeclaration['name']
+				)
+			);
+			return false;
+		}
+
 		// Set custom error handler to catch warnings and notices.
 		set_error_handler( // phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_set_error_handler
 			function ( $errno, $errstr, $errfile, $errline ) {

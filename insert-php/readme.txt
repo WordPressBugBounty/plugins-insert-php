@@ -2,9 +2,9 @@
 Contributors: themeisle
 Tags: code snippets, php, insert php, header footer, custom css
 Requires at least: 5.6
-Tested up to: 7.0
+Tested up to: 7.1
 Requires PHP: 7.0
-Stable tag: 2.7.6
+Stable tag: 2.7.7
 License: GPLv2 or later
 License URI: http://www.gnu.org/licenses/gpl-2.0.html
 
@@ -280,6 +280,21 @@ The plugin doesn’t support multi-sites setup.
 7. Use custom shortcode names for reusing snippets
 
 == Changelog ==
+
+#####   Version 2.7.7 (2026-09-14)
+
+- Improved the plugins reliability with expanded automated testing
+- Fixed fatal PHP error details missing from the Safe Mode screen for administrators.
+- Fixed PHP shortcodes crashing pages when a stored snippet has invalid PHP.
+- Improved the Woody Snippets block setup when no snippets are available.
+- Fixed PHP shortcodes that stopped page indexing after a snippet error.
+- Fixed Safe Mode to stop all shortcode snippets for administrators.
+- Fixed PHP shortcodes that could crash pages after a snippet runtime error.
+- Fixed snippet saves that crashed when a function name was already in use.
+- Fixed frontend pages stopping when a PHP shortcode snippet has a runtime error.
+
+
+
 
 #####   Version 2.7.6 (2026-07-22)
 

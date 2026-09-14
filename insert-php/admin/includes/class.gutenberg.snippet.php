@@ -46,12 +46,8 @@ class WINP_Gutenberg_Snippet {
 	public function init() {
 		$this->shortcode_data = WINP_Helper::get_shortcode_data();
 
-		if ( empty( $this->shortcode_data ) ) {
-			return;
-		}
-
 		// Register the block type and get the WP_Block_Type instance.
-		$block_type = register_block_type( WINP_PLUGIN_DIR . '/admin/assets/gutenberg/build/block.json' );
+		$block_type = $this->register_block();
 
 		/**
 		 * Register snippets object, so it can be accessible within Gutenberg.
@@ -62,10 +58,20 @@ class WINP_Gutenberg_Snippet {
 				$block_type->editor_script_handles[0],
 				'winp_snippets',
 				[
-					'data' => $this->prepared_snippets_data(),
+					'data'      => $this->prepared_snippets_data(),
+					'createUrl' => admin_url( 'post-new.php?post_type=' . WINP_SNIPPETS_POST_TYPE ),
 				]
 			);
 		}
+	}
+
+	/**
+	 * Register the block type.
+	 *
+	 * @return WP_Block_Type|false
+	 */
+	protected function register_block() {
+		return register_block_type( WINP_PLUGIN_DIR . '/admin/assets/gutenberg/build/block.json' );
 	}
 
 	/**

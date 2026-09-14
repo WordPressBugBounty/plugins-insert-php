@@ -23,6 +23,13 @@ class WINP_Error_Handler {
 	private static $current_snippet = null;
 
 	/**
+	 * Previous snippet contexts for nested shortcode execution.
+	 *
+	 * @var array<int, array<string, mixed>|null>
+	 */
+	private static $snippet_stack = [];
+
+	/**
 	 * Tracks whether the error handler has been initialized.
 	 *
 	 * @var bool
@@ -53,6 +60,7 @@ class WINP_Error_Handler {
 	 * @return void
 	 */
 	public static function set_current_snippet( $snippet_id, $title, $content = null ) {
+		self::$snippet_stack[] = self::$current_snippet;
 		self::$current_snippet = [
 			'id'      => $snippet_id,
 			'title'   => $title,
@@ -66,7 +74,39 @@ class WINP_Error_Handler {
 	 * @return void
 	 */
 	public static function clear_current_snippet() {
-		self::$current_snippet = null;
+		self::$current_snippet = array_pop( self::$snippet_stack );
+	}
+
+	/**
+	 * Handle a catchable error raised while rendering a PHP shortcode.
+	 *
+	 * @param Throwable $exception Runtime error raised by evaluated snippet code.
+	 * @return string Error details for administrators, or an empty string.
+	 */
+	public static function handle_exception( $exception ) {
+		if ( ! self::$current_snippet ) {
+			return '';
+		}
+
+		/**
+		 * Fires when PHP shortcode execution raises a catchable error.
+		 *
+		 * @param Throwable            $exception Runtime error raised by the snippet.
+		 * @param array<string, mixed> $context   Current snippet context.
+		 */
+		do_action( 'wbcr_inp_php_shortcode_error', $exception, self::$current_snippet );
+
+		if ( ! current_user_can( 'manage_options' ) ) {
+			return '';
+		}
+
+		$display = self::build_error_display(
+			self::$current_snippet['title'],
+			self::strip_stack_trace( $exception->getMessage() ),
+			$exception->getLine()
+		);
+
+		return false !== $display ? $display : '';
 	}
 
 	/**
@@ -78,7 +118,7 @@ class WINP_Error_Handler {
 	public static function customize_error_message( $message ) {
 		$error = error_get_last();
 
-		if ( ! $error || ! self::$current_snippet ) {
+		if ( ! $error || ! self::$current_snippet || ! current_user_can( 'manage_options' ) ) {
 			return $message;
 		}
 
@@ -86,12 +126,13 @@ class WINP_Error_Handler {
 			return $message;
 		}
 
+		$snippet_id    = (int) self::$current_snippet['id'];
 		$snippet_title = self::$current_snippet['title'];
 		$error_message = self::strip_stack_trace( $error['message'] );
 		$error_line    = (int) $error['line'];
 
 		// Build the custom error display.
-		$custom_message = self::build_error_display( $snippet_title, $error_message, $error_line );
+		$custom_message = self::build_error_display( $snippet_title, $error_message, $error_line, $snippet_id );
 
 		return $message . $custom_message;
 	}
@@ -124,7 +165,7 @@ class WINP_Error_Handler {
 		
 		$patterns = [
 			'/\s*Stack trace:.*/is',
-			'/\s*#\d+\s+.*/is',
+			'/\n\s*#\d+\s+.*/is',
 			'/\s*thrown in .*/is',
 		];
 
@@ -147,9 +188,10 @@ class WINP_Error_Handler {
 	 * @param string $snippet_title Snippet title.
 	 * @param string $error_message Error message.
 	 * @param int    $error_line Line number where error occurred.
+	 * @param int    $snippet_id Snippet ID.
 	 * @return string|false HTML for error display.
 	 */
-	private static function build_error_display( $snippet_title, $error_message, $error_line ) {
+	private static function build_error_display( $snippet_title, $error_message, $error_line, $snippet_id = 0 ) {
 		$title = $snippet_title
 						? sprintf(
 							// translators: %s is snippet title.
@@ -165,10 +207,18 @@ class WINP_Error_Handler {
 							$error_line 
 						)
 						: '';
+		$id_info = $snippet_id
+						? sprintf(
+							// translators: %d is the snippet ID.
+							__( 'Snippet ID: %d', 'insert-php' ),
+							$snippet_id
+						)
+						: '';
 
 		$full_error_text = sprintf(
-			"%s\n%s: %s",
+			"%s\n%s\n%s: %s",
 			$title,
+			$id_info,
 			$line_info,
 			$error_message
 		);
@@ -270,6 +320,13 @@ class WINP_Error_Handler {
 						<?php echo esc_html( $snippet_title ); ?>
 					</span>
 				</div>
+
+				<?php if ( $snippet_id ) : ?>
+					<div class="winp-error-row">
+						<span class="winp-error-label"><?php esc_html_e( 'Snippet ID:', 'insert-php' ); ?></span>
+						<span class="winp-error-value"><?php echo esc_html( (string) $snippet_id ); ?></span>
+					</div>
+				<?php endif; ?>
 
 				<?php if ( $error_line ) : ?>
 					<div class="winp-error-row">

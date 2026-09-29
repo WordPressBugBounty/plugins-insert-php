@@ -46,6 +46,9 @@ if ( ! class_exists( 'WINP_Plugin' ) ) {
 			require_once WINP_PLUGIN_DIR . '/includes/class.rest.php';
 			new WINP_Rest();
 
+			require_once WINP_PLUGIN_DIR . '/includes/class.abilities.php';
+			new WINP_Abilities();
+
 			require_once WINP_PLUGIN_DIR . '/admin/pages/class.settings.php';
 			require_once WINP_PLUGIN_DIR . '/admin/pages/class.new-item.php';
 			require_once WINP_PLUGIN_DIR . '/admin/pages/class.snippet-library.php';

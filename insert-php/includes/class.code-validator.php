@@ -16,6 +16,109 @@ if ( ! defined( 'ABSPATH' ) ) {
 class WINP_Code_Validator {
 
 	/**
+	 * Validate executable snippet code by evaluating it once.
+	 *
+	 * Runs the redeclaration preflight and then evaluates the code with output
+	 * discarded, reporting syntax errors, warnings and uncaught errors. The code
+	 * is executed in the current request, exactly as the snippet editor does.
+	 *
+	 * @param string $snippet_code Unslashed snippet code.
+	 * @param string $snippet_type Snippet type.
+	 * @return array{valid:bool,message:string} Validation result.
+	 */
+	public static function validate_code( $snippet_code, $snippet_type ) {
+		if ( empty( $snippet_code ) ) {
+			return [
+				'valid'   => true,
+				'message' => '',
+			];
+		}
+
+		$redeclaration = self::find_function_redeclaration( $snippet_code, $snippet_type );
+		if ( null !== $redeclaration ) {
+			return [
+				'valid'   => false,
+				// translators: %1$d is the line number, %2$s is the fully qualified function name.
+				'message' => sprintf( __( 'Line %1$d: Cannot redeclare function %2$s(). Rename the function or guard its declaration with function_exists().', 'insert-php' ), $redeclaration['line'], $redeclaration['name'] ),
+			];
+		}
+
+		$validation_errors = [];
+
+		// Set custom error handler to catch warnings and notices.
+		set_error_handler( // phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_set_error_handler
+			function ( $errno, $errstr, $errfile, $errline ) use ( &$validation_errors ) {
+				// Extract line number from eval'd code if present.
+				if ( strpos( $errfile, "eval()'d code" ) !== false ) {
+					// translators: %1$d is the line number, %2$s is the error message.
+					$validation_errors[] = sprintf( __( 'Line %1$d: %2$s', 'insert-php' ), $errline, $errstr );
+				} else {
+					$validation_errors[] = $errstr;
+				}
+				return true; // Don't execute PHP internal error handler.
+			}
+		);
+
+		ob_start();
+
+		try {
+			$result = WINP_SNIPPET_TYPE_UNIVERSAL === $snippet_type
+				? eval( '?> ' . $snippet_code . ' <?php ' )
+				: eval( $snippet_code );
+		} catch ( ParseError $e ) {
+			ob_end_clean();
+			restore_error_handler();
+
+			return [
+				'valid'   => false,
+				// translators: %1$d is the line number, %2$s is the error message.
+				'message' => sprintf( __( 'Syntax error on line %1$d: %2$s', 'insert-php' ), $e->getLine(), $e->getMessage() ),
+			];
+		} catch ( Throwable $e ) {
+			ob_end_clean();
+			restore_error_handler();
+
+			// For fatal errors in eval'd code, report the actual line number.
+			if ( strpos( $e->getFile(), "eval()'d code" ) !== false ) {
+				return [
+					'valid'   => false,
+					// translators: %1$d is the line number, %2$s is the error message.
+					'message' => sprintf( __( 'Error on line %1$d: %2$s', 'insert-php' ), $e->getLine(), $e->getMessage() ),
+				];
+			}
+
+			return [
+				'valid'   => false,
+				// translators: %s is the error message.
+				'message' => sprintf( __( 'Error: %s', 'insert-php' ), $e->getMessage() ),
+			];
+		}
+
+		// Discard any output (echo/print statements are normal for snippets).
+		ob_end_clean();
+		restore_error_handler();
+
+		if ( ! empty( $validation_errors ) ) {
+			return [
+				'valid'   => false,
+				'message' => implode( '<br>', $validation_errors ),
+			];
+		}
+
+		if ( false === $result ) {
+			return [
+				'valid'   => false,
+				'message' => __( 'The code contains syntax errors. Please review and fix them before saving.', 'insert-php' ),
+			];
+		}
+
+		return [
+			'valid'   => true,
+			'message' => '',
+		];
+	}
+
+	/**
 	 * Find a top-level function declaration that would be redeclared by eval().
 	 *
 	 * PHP terminates the request when eval() declares an already-loaded function,

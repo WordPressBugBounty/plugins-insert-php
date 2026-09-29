@@ -4,7 +4,7 @@ Tags: code snippets, php, insert php, header footer, custom css
 Requires at least: 5.6
 Tested up to: 7.1
 Requires PHP: 7.0
-Stable tag: 2.7.7
+Stable tag: 2.7.8
 License: GPLv2 or later
 License URI: http://www.gnu.org/licenses/gpl-2.0.html
 
@@ -280,6 +280,14 @@ The plugin doesn’t support multi-sites setup.
 7. Use custom shortcode names for reusing snippets
 
 == Changelog ==
+
+#####   Version 2.7.8 (2026-09-29)
+
+- Updated dependencies
+- Added AI agent support: let AI assistants read and change your Woody code snippets and settings.
+
+
+
 
 #####   Version 2.7.7 (2026-09-14)
 

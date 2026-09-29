@@ -306,112 +306,19 @@ function wbcr_inp_ajax_validate_snippet() {
 		WINP_SNIPPET_TYPE_HTML !== $snippet_type ) {
 
 		$snippet_code = stripslashes( $snippet_code );
-		
-		if ( empty( $snippet_code ) ) {
-			wp_send_json_success( [ 'valid' => true ] );
-		}
 
-		$redeclaration = WINP_Code_Validator::find_function_redeclaration( $snippet_code, $snippet_type );
-		if ( null !== $redeclaration ) {
+		$validation = WINP_Code_Validator::validate_code( $snippet_code, $snippet_type );
+
+		if ( ! $validation['valid'] ) {
 			wp_send_json_error(
 				[
 					'valid'   => false,
-					// translators: %1$d is the line number, %2$s is the fully qualified function name.
-					'message' => sprintf( __( 'Line %1$d: Cannot redeclare function %2$s(). Rename the function or guard its declaration with function_exists().', 'insert-php' ), $redeclaration['line'], $redeclaration['name'] ),
+					'message' => $validation['message'],
 				]
 			);
 		}
 
-		// Validate using the same logic as validate_code method.
-		$validation_errors = [];
-		
-		// Set custom error handler to catch warnings and notices.
-		set_error_handler( // phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_set_error_handler
-			function ( $errno, $errstr, $errfile, $errline ) use ( &$validation_errors ) {
-				// Extract line number from eval'd code if present.
-				if ( strpos( $errfile, "eval()'d code" ) !== false ) {
-					// translators: %1$d is the line number, %2$s is the error message.
-					$validation_errors[] = sprintf( __( 'Line %1$d: %2$s', 'insert-php' ), $errline, $errstr );
-				} else {
-					$validation_errors[] = $errstr;
-				}
-				return true; // Don't execute PHP internal error handler.
-			}
-		);
-
-		ob_start();
-
-		try {
-			$result = WINP_SNIPPET_TYPE_UNIVERSAL === $snippet_type
-				? eval( '?> ' . $snippet_code . ' <?php ' ) 
-				: eval( $snippet_code );
-
-			// Discard any output (echo/print statements are normal for snippets).
-			ob_end_clean();
-
-			// Restore error handler.
-			restore_error_handler();
-
-			// Check if any errors were caught.
-			if ( ! empty( $validation_errors ) ) {
-				// Show all errors, separated by line breaks.
-				$error_message = implode( '<br>', $validation_errors );
-				wp_send_json_error(
-					[
-						'valid'   => false,
-						'message' => $error_message,
-					] 
-				);
-			}
-
-			if ( false === $result ) {
-				wp_send_json_error(
-					[
-						'valid'   => false,
-						'message' => __( 'The code contains syntax errors. Please review and fix them before saving.', 'insert-php' ),
-					] 
-				);
-			}
-
-			wp_send_json_success( [ 'valid' => true ] );
-
-		} catch ( ParseError $e ) {
-			ob_end_clean();
-			restore_error_handler();
-			wp_send_json_error(
-				[
-					'valid'   => false,
-					// translators: %1$d is the line number, %2$s is the error message.
-					'message' => sprintf( __( 'Syntax error on line %1$d: %2$s', 'insert-php' ), $e->getLine(), $e->getMessage() ),
-				] 
-			);
-		} catch ( Throwable $e ) {
-			ob_end_clean();
-			restore_error_handler();
-			
-			// Try to extract line number from the error message.
-			$error_message = $e->getMessage();
-			$line          = $e->getLine();
-			
-			// For fatal errors in eval'd code, extract the actual line number.
-			if ( strpos( $e->getFile(), "eval()'d code" ) !== false ) {
-				wp_send_json_error(
-					[
-						'valid'   => false,
-						// translators: %1$d is the line number, %2$s is the error message.
-						'message' => sprintf( __( 'Error on line %1$d: %2$s', 'insert-php' ), $line, $error_message ),
-					] 
-				);
-			} else {
-				wp_send_json_error(
-					[
-						'valid'   => false,
-						// translators: %s is the error message.
-						'message' => sprintf( __( 'Error: %s', 'insert-php' ), $error_message ),
-					] 
-				);
-			}
-		}
+		wp_send_json_success( [ 'valid' => true ] );
 	} else {
 		// No validation needed for this type.
 		wp_send_json_success( [ 'valid' => true ] );

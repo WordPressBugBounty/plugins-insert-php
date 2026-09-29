@@ -1,3 +1,8 @@
+#####   Version 2.7.8 (2026-09-29)
+
+- Updated dependencies
+- Added AI agent support: let AI assistants read and change your Woody code snippets and settings.
+
 #####   Version 2.7.7 (2026-09-14)
 
 - Improved the plugins reliability with expanded automated testing

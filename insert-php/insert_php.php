@@ -4,7 +4,7 @@
  * Plugin URI: https://woodysnippet.com/
  * Description: Executes PHP code, uses conditional logic to insert ads, text, media content and external service's code. Ensures no content duplication.
  * Author: Themeisle
- * Version: 2.7.7
+ * Version: 2.7.8
  * WordPress Available:  yes
  * Requires License:    no
  * Text Domain: insert-php
@@ -41,7 +41,7 @@ $wbcr_inp_safe_mode = false;
 // Set the constant that the plugin is activated.
 define( 'WINP_PLUGIN_ACTIVE', true );
 
-define( 'WINP_PLUGIN_VERSION', '2.7.7' );
+define( 'WINP_PLUGIN_VERSION', '2.7.8' );
 
 // Root directory of the plugin.
 define( 'WINP_PLUGIN_DIR', __DIR__ );
@@ -245,6 +245,31 @@ function winp_sdk_about_page() {
 }
 
 /**
+ * AI Connect metadata.
+ *
+ * Only the read abilities are listed: the abilities that save or activate
+ * snippets run code, so the site owner switches those on deliberately.
+ *
+ * @return array<string, mixed>
+ */
+function winp_sdk_ai_connect() {
+	return [
+		'name'           => 'Woody Code Snippets',
+		'notice_cases'   => [
+			__( 'find where a script is inserted', 'insert-php' ),
+			__( 'review the code of a snippet', 'insert-php' ),
+			__( 'audit your active snippets', 'insert-php' ),
+		],
+		'prompts'        => [
+			__( 'Find which Woody Code Snippets load gtag and where they are inserted.', 'insert-php' ),
+			__( 'Show me the code of my header scripts snippet and explain what it does.', 'insert-php' ),
+			__( 'Which of my snippets run PHP on every page?', 'insert-php' ),
+		],
+		'ability_prefix' => 'woody',
+	];
+}
+
+/**
  * Register compatibility using SDK.
  *
  * @param array<string, array<string, string>> $compatibilities All compatibilities.
@@ -262,6 +287,7 @@ function winp_sdk_register_compatibility( $compatibilities ) {
 
 add_filter( 'themeisle_sdk_products', 'winp_sdk_register_products' );
 add_filter( WINP_PLUGIN_NAMESPACE . '_about_us_metadata', 'winp_sdk_about_page' );
+add_filter( WINP_PLUGIN_NAMESPACE . '_ai_connect_metadata', 'winp_sdk_ai_connect' );
 add_filter( 'themeisle_sdk_compatibilities/' . basename( WINP_PLUGIN_DIR ), 'winp_sdk_register_compatibility' );
 
 // Register activation/deactivation hooks.

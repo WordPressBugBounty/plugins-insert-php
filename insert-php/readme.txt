@@ -4,7 +4,7 @@ Tags: code snippets, php, insert php, header footer, custom css
 Requires at least: 5.6
 Tested up to: 7.1
 Requires PHP: 7.0
-Stable tag: 2.7.8
+Stable tag: 2.7.9
 License: GPLv2 or later
 License URI: http://www.gnu.org/licenses/gpl-2.0.html
 
@@ -280,6 +280,16 @@ The plugin doesn’t support multi-sites setup.
 7. Use custom shortcode names for reusing snippets
 
 == Changelog ==
+
+#####   Version 2.7.9 (2026-10-05)
+
+- Fixed a fatal error when activating legacy Premium versions.
+- Fixed repeated PHP and Universal shortcodes breaking pages after function declarations.
+- Fixed snippet previews and inactive saves running code before activation.
+- Updated dependencies
+
+
+
 
 #####   Version 2.7.8 (2026-09-29)
 

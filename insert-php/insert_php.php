@@ -4,7 +4,7 @@
  * Plugin URI: https://woodysnippet.com/
  * Description: Executes PHP code, uses conditional logic to insert ads, text, media content and external service's code. Ensures no content duplication.
  * Author: Themeisle
- * Version: 2.7.8
+ * Version: 2.7.9
  * WordPress Available:  yes
  * Requires License:    no
  * Text Domain: insert-php
@@ -41,7 +41,7 @@ $wbcr_inp_safe_mode = false;
 // Set the constant that the plugin is activated.
 define( 'WINP_PLUGIN_ACTIVE', true );
 
-define( 'WINP_PLUGIN_VERSION', '2.7.8' );
+define( 'WINP_PLUGIN_VERSION', '2.7.9' );
 
 // Root directory of the plugin.
 define( 'WINP_PLUGIN_DIR', __DIR__ );
@@ -89,36 +89,38 @@ add_action(
 );
 
 // START: Related to premium version compatibility check for below 1.3.
-add_action(
-	'plugins_loaded',
-	function () {
-		$premium_plugin_file = 'woody-ad-snippets-premium/woody-ad-snippets-premium.php';
-		$premium_plugin_path = WP_PLUGIN_DIR . '/' . $premium_plugin_file;
+/**
+ * Deactivates Premium versions below 1.3.0, which are not compatible with this version.
+ */
+function winp_deactivate_incompatible_premium(): void {
+	$premium_plugin_file = 'woody-ad-snippets-premium/woody-ad-snippets-premium.php';
+	$premium_plugin_path = WP_PLUGIN_DIR . '/' . $premium_plugin_file;
 
-		if ( ! file_exists( $premium_plugin_path ) ) {
-			return;
-		}
+	if ( ! file_exists( $premium_plugin_path ) ) {
+		return;
+	}
 
-		if ( ! function_exists( 'is_plugin_active' ) ) {
-			require_once ABSPATH . 'wp-admin/includes/plugin.php';
-		}
+	if ( ! function_exists( 'is_plugin_active' ) ) {
+		require_once ABSPATH . 'wp-admin/includes/plugin.php';
+	}
 
-		if ( ! is_plugin_active( $premium_plugin_file ) ) {
-			return;
-		}
+	if ( ! is_plugin_active( $premium_plugin_file ) ) {
+		return;
+	}
 
-		if ( ! function_exists( 'get_plugin_data' ) ) {
-			require_once ABSPATH . 'wp-admin/includes/plugin.php';
-		}
-		$premium_data = get_plugin_data( $premium_plugin_path );
+	if ( ! function_exists( 'get_plugin_data' ) ) {
+		require_once ABSPATH . 'wp-admin/includes/plugin.php';
+	}
+	$premium_data = get_plugin_data( $premium_plugin_path );
 
-		if ( version_compare( $premium_data['Version'], '1.3.0', '<' ) ) {
-			deactivate_plugins( $premium_plugin_file );
-			set_transient( 'winp_premium_version_incompatible', true, WEEK_IN_SECONDS );
-		}
-	},
-	5
-);
+	if ( version_compare( $premium_data['Version'], '1.3.0', '<' ) ) {
+		deactivate_plugins( $premium_plugin_file );
+		// Still hooked this request; it calls WINP_Plugin::app() before init.
+		remove_action( 'plugins_loaded', 'wasp_premium_load', 20 );
+		set_transient( 'winp_premium_version_incompatible', true, WEEK_IN_SECONDS );
+	}
+}
+add_action( 'plugins_loaded', 'winp_deactivate_incompatible_premium', 5 );
 
 add_action(
 	'admin_init',

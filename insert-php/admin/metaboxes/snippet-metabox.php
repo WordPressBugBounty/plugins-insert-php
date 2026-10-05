@@ -1243,16 +1243,9 @@ class WINP_Snippet_MetaBox {
 			return true;
 		}
 
-		$redeclaration = WINP_Code_Validator::find_function_redeclaration( $snippet_code, $snippet_type );
+		$redeclaration = WINP_Code_Validator::find_redeclaration( $snippet_code, $snippet_type );
 		if ( null !== $redeclaration ) {
-			$this->display_validation_error(
-				$redeclaration['line'],
-				sprintf(
-					// translators: %s is the fully qualified function name.
-					__( 'Cannot redeclare function %s(). Rename the function or guard its declaration with function_exists().', 'insert-php' ),
-					$redeclaration['name']
-				)
-			);
+			$this->display_validation_error( $redeclaration['line'], WINP_Code_Validator::get_redeclaration_message( $redeclaration ) );
 			return false;
 		}
 

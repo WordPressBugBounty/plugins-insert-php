@@ -230,6 +230,29 @@ class WINP_SnippetShortcode {
 	}
 
 	/**
+	 * Report a top-level declaration the snippet would redeclare instead of evaluating it.
+	 *
+	 * Repeated placements of one snippet re-evaluate it, and a redeclaration inside
+	 * eval() ends the request. Clears the current snippet context when reporting.
+	 *
+	 * @param string $snippet_content Snippet code.
+	 * @param string $snippet_type    Snippet type.
+	 *
+	 * @return string|null Error output, or null when the snippet can be evaluated.
+	 */
+	protected function render_redeclaration_error( string $snippet_content, string $snippet_type ): ?string {
+		$redeclaration_error = WINP_Code_Validator::get_redeclaration_error( $snippet_content, $snippet_type );
+		if ( null === $redeclaration_error ) {
+			return null;
+		}
+
+		$error_output = WINP_Error_Handler::handle_exception( $redeclaration_error );
+		WINP_Error_Handler::clear_current_snippet();
+
+		return $error_output;
+	}
+
+	/**
 	 * Content render
 	 *
 	 * @param array<string, mixed> $attr    Shortcode attributes.

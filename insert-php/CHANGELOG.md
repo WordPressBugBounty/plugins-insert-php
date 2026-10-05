@@ -1,3 +1,10 @@
+#####   Version 2.7.9 (2026-10-05)
+
+- Fixed a fatal error when activating legacy Premium versions.
+- Fixed repeated PHP and Universal shortcodes breaking pages after function declarations.
+- Fixed snippet previews and inactive saves running code before activation.
+- Updated dependencies
+
 #####   Version 2.7.8 (2026-09-29)
 
 - Updated dependencies

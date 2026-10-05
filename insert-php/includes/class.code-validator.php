@@ -34,12 +34,11 @@ class WINP_Code_Validator {
 			];
 		}
 
-		$redeclaration = self::find_function_redeclaration( $snippet_code, $snippet_type );
-		if ( null !== $redeclaration ) {
+		$redeclaration_error = self::get_redeclaration_error( $snippet_code, $snippet_type );
+		if ( null !== $redeclaration_error ) {
 			return [
 				'valid'   => false,
-				// translators: %1$d is the line number, %2$s is the fully qualified function name.
-				'message' => sprintf( __( 'Line %1$d: Cannot redeclare function %2$s(). Rename the function or guard its declaration with function_exists().', 'insert-php' ), $redeclaration['line'], $redeclaration['name'] ),
+				'message' => $redeclaration_error->getMessage(),
 			];
 		}
 
@@ -119,6 +118,45 @@ class WINP_Code_Validator {
 	}
 
 	/**
+	 * Check executable snippet code for syntax errors without running it.
+	 *
+	 * The tokenizer parses the code in TOKEN_PARSE mode and never executes it.
+	 * Errors PHP raises only when the code runs, such as a call to an undefined
+	 * function, are left to the check that runs when the snippet is activated.
+	 * Without the tokenizer extension nothing is checked and the result says so.
+	 *
+	 * @param string $snippet_code Snippet code, without the opening tag for PHP snippets.
+	 * @param string $snippet_type Snippet type.
+	 * @return array{valid:bool,checked:bool,message:string} Check result.
+	 */
+	public static function check_syntax( string $snippet_code, $snippet_type ): array {
+		if ( ! self::can_tokenize() ) {
+			return [
+				'valid'   => true,
+				'checked' => false,
+				'message' => '',
+			];
+		}
+
+		try {
+			token_get_all( self::get_source( $snippet_code, $snippet_type ), TOKEN_PARSE );
+		} catch ( CompileError $e ) {
+			return [
+				'valid'   => false,
+				'checked' => true,
+				// translators: %1$d is the line number, %2$s is the error message.
+				'message' => sprintf( __( 'Syntax error on line %1$d: %2$s', 'insert-php' ), $e->getLine(), $e->getMessage() ),
+			];
+		}
+
+		return [
+			'valid'   => true,
+			'checked' => true,
+			'message' => '',
+		];
+	}
+
+	/**
 	 * Find a top-level function declaration that would be redeclared by eval().
 	 *
 	 * PHP terminates the request when eval() declares an already-loaded function,
@@ -129,12 +167,108 @@ class WINP_Code_Validator {
 	 * @return array{name:string,line:int}|null Conflict details, or null when none is found.
 	 */
 	public static function find_function_redeclaration( $snippet_code, $snippet_type ) {
-		$source = WINP_SNIPPET_TYPE_UNIVERSAL === $snippet_type
-			? $snippet_code
-			: '<?php ' . $snippet_code;
-		$tokens = token_get_all( $source );
+		$redeclaration = self::scan_redeclarations( (string) $snippet_code, $snippet_type, false );
+		if ( null === $redeclaration ) {
+			return null;
+		}
 
-		$brace_depth       = 0;
+		return [
+			'name' => $redeclaration['name'],
+			'line' => $redeclaration['line'],
+		];
+	}
+
+	/**
+	 * Find a top-level function, class, interface, trait or enum that would be redeclared by eval().
+	 *
+	 * PHP terminates the request when eval() declares a name that is already in
+	 * use, so this conflict has to be detected before evaluating the snippet.
+	 *
+	 * @param string $snippet_code Snippet code.
+	 * @param string $snippet_type Snippet type.
+	 * @return array{kind:string,name:string,line:int}|null Conflict details, or null when none is found.
+	 */
+	public static function find_redeclaration( string $snippet_code, $snippet_type ): ?array {
+		return self::scan_redeclarations( $snippet_code, $snippet_type, true );
+	}
+
+	/**
+	 * Describe a redeclaration found by find_redeclaration().
+	 *
+	 * @param array{kind:string,name:string,line:int} $redeclaration Conflict details.
+	 * @return string
+	 */
+	public static function get_redeclaration_message( array $redeclaration ): string {
+		switch ( $redeclaration['kind'] ) {
+			case 'class':
+				// translators: %s is the fully qualified class name.
+				return sprintf( __( 'Cannot declare class %s, because the name is already in use. Rename the class or guard its declaration with class_exists().', 'insert-php' ), $redeclaration['name'] );
+			case 'interface':
+				// translators: %s is the fully qualified interface name.
+				return sprintf( __( 'Cannot declare interface %s, because the name is already in use. Rename the interface or guard its declaration with interface_exists().', 'insert-php' ), $redeclaration['name'] );
+			case 'trait':
+				// translators: %s is the fully qualified trait name.
+				return sprintf( __( 'Cannot declare trait %s, because the name is already in use. Rename the trait or guard its declaration with trait_exists().', 'insert-php' ), $redeclaration['name'] );
+			case 'enum':
+				// translators: %s is the fully qualified enum name.
+				return sprintf( __( 'Cannot declare enum %s, because the name is already in use. Rename the enum or guard its declaration with enum_exists().', 'insert-php' ), $redeclaration['name'] );
+			default:
+				// translators: %s is the fully qualified function name.
+				return sprintf( __( 'Cannot redeclare function %s(). Rename the function or guard its declaration with function_exists().', 'insert-php' ), $redeclaration['name'] );
+		}
+	}
+
+	/**
+	 * Build the error for a top-level declaration the snippet would redeclare.
+	 *
+	 * @param string $snippet_code Snippet code.
+	 * @param string $snippet_type Snippet type.
+	 * @return ErrorException|null Error carrying the snippet line, or null when none is found.
+	 */
+	public static function get_redeclaration_error( string $snippet_code, $snippet_type ): ?ErrorException {
+		$redeclaration = self::find_redeclaration( $snippet_code, $snippet_type );
+		if ( null === $redeclaration ) {
+			return null;
+		}
+
+		return new ErrorException(
+			// translators: %1$d is the line number, %2$s is the error message.
+			sprintf( __( 'Line %1$d: %2$s', 'insert-php' ), $redeclaration['line'], self::get_redeclaration_message( $redeclaration ) ),
+			0,
+			E_COMPILE_ERROR,
+			__FILE__,
+			$redeclaration['line']
+		);
+	}
+
+	/**
+	 * Find the first top-level declaration whose name is already in use.
+	 *
+	 * Top-level functions are bound when eval() compiles the code, so a conflict
+	 * always ends the request. Classes, interfaces, traits and enums are declared
+	 * when execution reaches them, so they are not reported after a return, exit,
+	 * throw or goto outside any function or class body, which may guard them.
+	 * Declarations inside braces are conditional and are skipped, even when the
+	 * condition is always true. Class-like declarations inside alternative-syntax
+	 * blocks, as in if ( ... ): ... endif;, are skipped too, while functions there
+	 * are still reported. Nothing is reported without the tokenizer extension.
+	 *
+	 * @param string $snippet_code    Snippet code.
+	 * @param string $snippet_type    Snippet type.
+	 * @param bool   $include_classes Whether class-like declarations are checked.
+	 * @return array{kind:string,name:string,line:int}|null Conflict details, or null when none is found.
+	 */
+	private static function scan_redeclarations( string $snippet_code, $snippet_type, bool $include_classes ): ?array {
+		if ( ! self::can_tokenize() ) {
+			return null;
+		}
+
+		$tokens            = token_get_all( self::get_source( $snippet_code, $snippet_type ) );
+		$declaration_kinds = self::get_declaration_kinds();
+		$blocks            = []; // One entry per open brace, true when it opens a function or class body.
+		$opens_body        = false;
+		$alternative_depth = 0;
+		$may_stop          = false;
 		$namespace         = '';
 		$namespace_depth   = 0;
 		$reading_namespace = false;
@@ -142,80 +276,243 @@ class WINP_Code_Validator {
 		$declared          = [];
 
 		foreach ( $tokens as $index => $token ) {
-			if ( is_array( $token ) ) {
-				if ( in_array( $token[0], [ T_CURLY_OPEN, T_DOLLAR_OPEN_CURLY_BRACES ], true ) ) {
-					++$brace_depth;
-					continue;
-				}
-
-				if ( T_NAMESPACE === $token[0] ) {
-					$reading_namespace = true;
-					$namespace_name    = '';
-					continue;
-				}
-
+			if ( ! is_array( $token ) ) {
 				if ( $reading_namespace ) {
-					if ( self::is_namespace_name_token( $token[0] ) ) {
-						$namespace_name .= $token[1];
-					} elseif ( ! in_array( $token[0], [ T_WHITESPACE, T_COMMENT, T_DOC_COMMENT ], true ) ) {
-						$reading_namespace = false;
-						$namespace_name    = '';
+					$reading_namespace = false;
+
+					if ( ';' === $token ) {
+						$namespace       = trim( $namespace_name, '\\' );
+						$namespace_depth = 0;
+						continue;
 					}
+
+					if ( '{' !== $token ) {
+						$namespace_name = '';
+						continue;
+					}
+
+					$blocks[]        = false;
+					$namespace       = trim( $namespace_name, '\\' );
+					$namespace_depth = count( $blocks );
 					continue;
 				}
 
-				if ( T_FUNCTION !== $token[0] || $brace_depth !== $namespace_depth ) {
-					continue;
+				if ( '{' === $token ) {
+					$blocks[]   = $opens_body;
+					$opens_body = false;
+				} elseif ( '}' === $token ) {
+					array_pop( $blocks );
+					if ( $namespace_depth > count( $blocks ) ) {
+						$namespace       = '';
+						$namespace_depth = 0;
+					}
+				} elseif ( ';' === $token ) {
+					// Abstract and interface methods have no body.
+					$opens_body = false;
 				}
+				continue;
+			}
 
-				$function_name = self::get_function_name( $tokens, $index );
-				if ( null === $function_name ) {
-					continue;
-				}
+			$token_id = $token[0];
 
-				$qualified_name  = $namespace ? $namespace . '\\' . $function_name : $function_name;
-				$normalized_name = strtolower( $qualified_name );
+			if ( in_array( $token_id, [ T_CURLY_OPEN, T_DOLLAR_OPEN_CURLY_BRACES ], true ) ) {
+				$blocks[] = false;
+				continue;
+			}
 
-				if ( isset( $declared[ $normalized_name ] ) || function_exists( $qualified_name ) ) {
-					return [
-						'name' => $qualified_name,
-						'line' => (int) $token[2],
-					];
-				}
-
-				$declared[ $normalized_name ] = true;
+			if ( T_NAMESPACE === $token_id ) {
+				$reading_namespace = true;
+				$namespace_name    = '';
 				continue;
 			}
 
 			if ( $reading_namespace ) {
-				if ( ';' === $token ) {
-					$namespace         = trim( $namespace_name, '\\' );
-					$namespace_depth   = 0;
-					$reading_namespace = false;
-				} elseif ( '{' === $token ) {
-					++$brace_depth;
-					$namespace         = trim( $namespace_name, '\\' );
-					$namespace_depth   = $brace_depth;
-					$reading_namespace = false;
-				} else {
+				if ( self::is_namespace_name_token( $token_id ) ) {
+					$namespace_name .= $token[1];
+				} elseif ( ! self::is_insignificant( $token ) ) {
 					$reading_namespace = false;
 					$namespace_name    = '';
 				}
 				continue;
 			}
 
-			if ( '{' === $token ) {
-				++$brace_depth;
-			} elseif ( '}' === $token ) {
-				$brace_depth = max( 0, $brace_depth - 1 );
-				if ( $namespace_depth > $brace_depth ) {
-					$namespace       = '';
-					$namespace_depth = 0;
-				}
+			if ( in_array( $token_id, [ T_RETURN, T_EXIT, T_THROW, T_GOTO ], true ) ) {
+				$may_stop = $may_stop || ! in_array( true, $blocks, true );
+				continue;
 			}
+
+			if ( in_array( $token_id, [ T_IF, T_WHILE, T_FOR, T_FOREACH, T_SWITCH ], true ) ) {
+				if ( self::opens_alternative_block( $tokens, $index ) ) {
+					++$alternative_depth;
+				}
+				continue;
+			}
+
+			if ( in_array( $token_id, [ T_ENDIF, T_ENDWHILE, T_ENDFOR, T_ENDFOREACH, T_ENDSWITCH ], true ) ) {
+				$alternative_depth = max( 0, $alternative_depth - 1 );
+				continue;
+			}
+
+			if ( ! isset( $declaration_kinds[ $token_id ] ) || self::is_name_reference( $tokens, $index ) ) {
+				continue;
+			}
+
+			// Named and anonymous functions and classes open their body at the next brace.
+			$opens_body  = true;
+			$kind        = $declaration_kinds[ $token_id ];
+			$is_function = 'function' === $kind;
+
+			if ( count( $blocks ) !== $namespace_depth || ( ! $is_function && ( ! $include_classes || $may_stop || $alternative_depth > 0 ) ) ) {
+				continue;
+			}
+
+			$name = self::get_declared_name( $tokens, $index );
+			if ( null === $name ) {
+				continue;
+			}
+
+			$qualified_name = $namespace ? $namespace . '\\' . $name : $name;
+			$symbol_key     = ( $is_function ? 'function:' : 'class:' ) . strtolower( $qualified_name );
+			$in_use         = $is_function ? function_exists( $qualified_name ) : self::is_class_name_in_use( $qualified_name );
+
+			if ( isset( $declared[ $symbol_key ] ) || $in_use ) {
+				return [
+					'kind' => $kind,
+					'name' => $qualified_name,
+					'line' => (int) $token[2],
+				];
+			}
+
+			$declared[ $symbol_key ] = true;
 		}
 
 		return null;
+	}
+
+	/**
+	 * Check whether the tokenizer extension is available.
+	 *
+	 * @return bool
+	 */
+	private static function can_tokenize(): bool {
+		return function_exists( 'token_get_all' );
+	}
+
+	/**
+	 * Build the source the tokenizer reads: PHP snippets are stored without their opening tag.
+	 *
+	 * @param string $snippet_code Snippet code.
+	 * @param string $snippet_type Snippet type.
+	 * @return string
+	 */
+	private static function get_source( string $snippet_code, $snippet_type ): string {
+		return WINP_SNIPPET_TYPE_UNIVERSAL === $snippet_type ? $snippet_code : '<?php ' . $snippet_code;
+	}
+
+	/**
+	 * Map the declaration tokens to the kind of name they declare.
+	 *
+	 * @return array<int, string>
+	 */
+	private static function get_declaration_kinds(): array {
+		$kinds = [
+			T_FUNCTION  => 'function',
+			T_CLASS     => 'class',
+			T_INTERFACE => 'interface',
+			T_TRAIT     => 'trait',
+		];
+
+		if ( defined( 'T_ENUM' ) ) {
+			$kinds[ constant( 'T_ENUM' ) ] = 'enum';
+		}
+
+		return $kinds;
+	}
+
+	/**
+	 * Check whether a class, interface, trait or enum with this name is already loaded.
+	 *
+	 * Autoloading is skipped: eval() only fails on names that are already declared.
+	 *
+	 * @param string $name Fully qualified name.
+	 * @return bool
+	 */
+	private static function is_class_name_in_use( string $name ): bool {
+		return class_exists( $name, false ) || interface_exists( $name, false ) || trait_exists( $name, false );
+	}
+
+	/**
+	 * Check whether a token is whitespace or a comment.
+	 *
+	 * @param array<int, int|string>|string $token Token.
+	 * @return bool
+	 */
+	private static function is_insignificant( $token ): bool {
+		return is_array( $token ) && in_array( $token[0], [ T_WHITESPACE, T_COMMENT, T_DOC_COMMENT ], true );
+	}
+
+	/**
+	 * Check whether a declaration keyword only refers to a name, as in Example::class or use function example;.
+	 *
+	 * @param array<int, array<int, int|string>|string> $tokens Token stream.
+	 * @param int                                       $index  Keyword token index.
+	 * @return bool
+	 */
+	private static function is_name_reference( array $tokens, int $index ): bool {
+		$preceding = [ T_DOUBLE_COLON, T_OBJECT_OPERATOR, T_USE ];
+
+		if ( defined( 'T_NULLSAFE_OBJECT_OPERATOR' ) ) {
+			$preceding[] = constant( 'T_NULLSAFE_OBJECT_OPERATOR' );
+		}
+
+		for ( $previous = $index - 1; $previous >= 0; --$previous ) {
+			if ( ! self::is_insignificant( $tokens[ $previous ] ) ) {
+				return is_array( $tokens[ $previous ] ) && in_array( $tokens[ $previous ][0], $preceding, true );
+			}
+		}
+
+		return false;
+	}
+
+	/**
+	 * Check whether a control structure uses the alternative syntax, as in if ( ... ): ... endif;.
+	 *
+	 * @param array<int, array<int, int|string>|string> $tokens Token stream.
+	 * @param int                                       $index  Control structure token index.
+	 * @return bool
+	 */
+	private static function opens_alternative_block( array $tokens, int $index ): bool {
+		$token_count = count( $tokens );
+		$depth       = 0;
+
+		for ( $current = $index + 1; $current < $token_count; ++$current ) {
+			$token = $tokens[ $current ];
+
+			if ( self::is_insignificant( $token ) ) {
+				continue;
+			}
+
+			if ( '(' === $token ) {
+				++$depth;
+				continue;
+			}
+
+			if ( 0 === $depth ) {
+				return false;
+			}
+
+			if ( ')' === $token && 0 === --$depth ) {
+				for ( $next = $current + 1; $next < $token_count; ++$next ) {
+					if ( ! self::is_insignificant( $tokens[ $next ] ) ) {
+						return ':' === $tokens[ $next ];
+					}
+				}
+
+				return false;
+			}
+		}
+
+		return false;
 	}
 
 	/**
@@ -237,20 +534,20 @@ class WINP_Code_Validator {
 	}
 
 	/**
-	 * Get the name following a function token, ignoring whitespace and references.
+	 * Get the name following a declaration token, ignoring whitespace and references.
 	 *
 	 * @param array<int, array<int, int|string>|string> $tokens Token stream.
-	 * @param int                                       $function_index Function token index.
-	 * @return string|null
+	 * @param int                                       $declaration_index Declaration token index.
+	 * @return string|null Null for closures, anonymous classes and other unnamed uses.
 	 */
-	private static function get_function_name( $tokens, $function_index ) {
+	private static function get_declared_name( $tokens, $declaration_index ) {
 		$token_count = count( $tokens );
 
-		for ( $index = $function_index + 1; $index < $token_count; ++$index ) {
+		for ( $index = $declaration_index + 1; $index < $token_count; ++$index ) {
 			$token = $tokens[ $index ];
 
 			if ( is_array( $token ) ) {
-				if ( in_array( $token[0], [ T_WHITESPACE, T_COMMENT, T_DOC_COMMENT ], true ) || '&' === $token[1] ) {
+				if ( self::is_insignificant( $token ) || '&' === $token[1] ) {
 					continue;
 				}
 

@@ -141,7 +141,7 @@ class WINP_Abilities {
 			'woody/upsert-snippet',
 			[
 				'label'               => __( 'Create or update snippet', 'insert-php' ),
-				'description'         => __( 'Creates a snippet (always inactive) or updates the code and execution settings of an existing one. PHP and universal snippets that run everywhere or are inserted automatically are validated first by evaluating the code once, exactly as the snippet editor does; nothing is saved when validation fails. With dry_run=true only the validation runs and nothing is saved. After an update an active snippet stays active only when the "activate by default" setting is on; this ability never activates an inactive snippet, use woody/set-snippet-state for that. CSS and JS snippet code cannot be written through this ability.', 'insert-php' ),
+				'description'         => __( 'Creates a snippet (always inactive) or updates the code and execution settings of an existing one. The code is never run: new or changed PHP and universal code is only checked for syntax errors and, unless the snippet is active, for functions and classes whose names are already in use; nothing is saved when the check fails. With dry_run=true only the check runs and nothing is saved. Changing the code or scope of an active PHP or universal snippet saves it inactive, because its new code has not run yet; after other updates an active snippet stays active only when the "activate by default" setting is on. This ability never activates a snippet; use woody/set-snippet-state, which runs the code once to check for errors. CSS and JS snippet code cannot be written through this ability.', 'insert-php' ),
 				'category'            => self::CATEGORY,
 				'input_schema'        => $this->get_upsert_input_schema(),
 				'output_schema'       => [
@@ -155,7 +155,11 @@ class WINP_Abilities {
 						'valid'       => [ 'type' => 'boolean' ],
 						'validated'   => [
 							'type'        => 'boolean',
-							'description' => __( 'Whether the code was evaluated. False for snippet types or scopes the editor does not validate.', 'insert-php' ),
+							'description' => __( 'Whether the code was checked for syntax errors; it is never run. False when the code and scope did not change, for snippet types that do not run PHP, and when the PHP tokenizer extension is missing.', 'insert-php' ),
+						],
+						'deactivated' => [
+							'type'        => 'boolean',
+							'description' => __( 'Whether saving left (or, with dry_run, would leave) a previously active snippet inactive.', 'insert-php' ),
 						],
 						'message'     => [ 'type' => 'string' ],
 						'revision_id' => [ 'type' => 'integer' ],
@@ -180,7 +184,7 @@ class WINP_Abilities {
 			'woody/set-snippet-state',
 			[
 				'label'               => __( 'Activate or deactivate snippet', 'insert-php' ),
-				'description'         => __( 'Activates or deactivates one snippet. Activating a PHP, universal or HTML snippet that runs everywhere or is inserted automatically first executes it once to check for errors, exactly as the activation switch in the snippets list does, and is refused when the check fails.', 'insert-php' ),
+				'description'         => __( 'Activates or deactivates one snippet. Activating a PHP or universal snippet that runs everywhere or is inserted automatically first runs its code once with output discarded, and is refused when the code raises an error or a warning or returns false. Activating such an HTML snippet runs the check of the activation switch in the snippets list.', 'insert-php' ),
 				'category'            => self::CATEGORY,
 				'input_schema'        => [
 					'type'                 => 'object',
@@ -433,41 +437,38 @@ class WINP_Abilities {
 			return $data;
 		}
 
-		$was_active = $post ? $this->is_active( $post->ID ) : false;
-
-		// Same rule the editor uses to decide whether the code has to be evaluated before saving.
-		$is_executable    = in_array( $data['type'], [ WINP_SNIPPET_TYPE_PHP, WINP_SNIPPET_TYPE_UNIVERSAL ], true );
-		$needs_validation = $is_executable && 'shortcode' !== $data['scope'] && '' !== trim( $data['code'] ) && $data['execution_changed'];
-		$validation       = [
+		$was_active    = $post ? $this->is_active( $post->ID ) : false;
+		$is_executable = in_array( $data['type'], [ WINP_SNIPPET_TYPE_PHP, WINP_SNIPPET_TYPE_UNIVERSAL ], true );
+		$validation    = [
 			'valid'   => true,
+			'checked' => false,
 			'message' => '',
 		];
 
-		if ( $needs_validation ) {
-			if ( WINP_Helper::is_safe_mode() ) {
-				return new WP_Error( 'woody_safe_mode', __( 'Safe mode is enabled, snippet code cannot be evaluated. Disable safe mode first.', 'insert-php' ) );
-			}
-
-			$validation = WINP_Code_Validator::validate_code( $this->prepare_code( $data['code'], $data['type'] ), $data['type'] );
-
-			if ( ! $validation['valid'] ) {
-				$validation['message'] = wp_strip_all_tags( str_replace( '<br>', "\n", $validation['message'] ) );
-
-				if ( $was_active ) {
-					$validation['message'] .= ' ' . __( 'The snippet is currently active and has already run in this request; deactivate it first if the error is caused by its own declarations.', 'insert-php' );
-				}
-			}
+		if ( $is_executable && '' !== trim( $data['code'] ) && $data['execution_changed'] ) {
+			$validation = $this->check_code( $data, $was_active );
 		}
 
-		$operation = $post ? 'update' : 'create';
+		// New snippets are always inactive. Like the editor, an update keeps an active snippet active only when the
+		// "activate by default" setting is on, and changed executable code is saved inactive because it has not run yet.
+		$keep_active = $was_active && ! ( $is_executable && $data['execution_changed'] ) && get_option( 'wbcr_inp_activate_by_default', true );
+		$deactivated = $was_active && ! $keep_active;
+		$operation   = $post ? 'update' : 'create';
 
 		if ( $dry_run ) {
+			$message = $validation['message'];
+
+			if ( $validation['valid'] && $deactivated ) {
+				$message = __( 'Saving will leave the snippet inactive. Activate it again with woody/set-snippet-state.', 'insert-php' );
+			}
+
 			return [
-				'dry_run'   => true,
-				'operation' => $operation,
-				'valid'     => $validation['valid'],
-				'validated' => $needs_validation,
-				'message'   => $validation['message'],
+				'dry_run'     => true,
+				'operation'   => $operation,
+				'valid'       => $validation['valid'],
+				'validated'   => $validation['checked'],
+				'deactivated' => $validation['valid'] && $deactivated,
+				'message'     => $message,
 			];
 		}
 
@@ -475,7 +476,7 @@ class WINP_Abilities {
 			return new WP_Error( 'woody_invalid_code', $validation['message'] );
 		}
 
-		$saved_id = $this->save_snippet( $data, $post, $was_active );
+		$saved_id = $this->save_snippet( $data, $post, $keep_active );
 
 		if ( is_wp_error( $saved_id ) ) {
 			return $saved_id;
@@ -502,11 +503,40 @@ class WINP_Abilities {
 			'dry_run'     => false,
 			'operation'   => $operation,
 			'valid'       => true,
-			'validated'   => $needs_validation,
-			'message'     => '',
+			'validated'   => $validation['checked'],
+			'deactivated' => $deactivated,
+			'message'     => $deactivated ? __( 'The snippet was saved inactive. Activate it again with woody/set-snippet-state.', 'insert-php' ) : '',
 			'revision_id' => $revision_id,
 			'snippet'     => $this->format_snippet( $saved, true ),
 		];
+	}
+
+	/**
+	 * Check new or changed executable code without running it.
+	 *
+	 * @param array<string, mixed> $data       Resolved snippet data.
+	 * @param bool                 $was_active Whether the snippet was active before the update.
+	 *
+	 * @return array{valid:bool,checked:bool,message:string}
+	 */
+	private function check_code( array $data, bool $was_active ): array {
+		$code       = $this->prepare_code( $data['code'], $data['type'] );
+		$validation = WINP_Code_Validator::check_syntax( $code, $data['type'] );
+
+		// An active snippet may already have run in this request, so its own declarations would be
+		// reported as conflicts; activating it again runs the same check once it is inactive.
+		if ( ! $validation['valid'] || $was_active ) {
+			return $validation;
+		}
+
+		$redeclaration_error = WINP_Code_Validator::get_redeclaration_error( $code, $data['type'] );
+
+		if ( null !== $redeclaration_error ) {
+			$validation['valid']   = false;
+			$validation['message'] = $redeclaration_error->getMessage();
+		}
+
+		return $validation;
 	}
 
 	/**
@@ -587,31 +617,193 @@ class WINP_Abilities {
 		}
 
 		if ( in_array( $type, [ WINP_SNIPPET_TYPE_PHP, WINP_SNIPPET_TYPE_UNIVERSAL ], true ) ) {
-			// Redeclaring a function inside eval() ends the request, so detect it before executing the snippet.
-			$code          = $this->prepare_code( (string) WINP_Helper::get_snippet_code( $post ), $type );
-			$redeclaration = WINP_Code_Validator::find_function_redeclaration( $code, $type );
-
-			if ( null !== $redeclaration ) {
-				return new WP_Error(
-					'woody_invalid_code',
-					// translators: %1$d is the line number, %2$s is the fully qualified function name.
-					sprintf( __( 'Line %1$d: Cannot redeclare function %2$s(). Rename the function or guard its declaration with function_exists().', 'insert-php' ), $redeclaration['line'], $redeclaration['name'] )
-				);
-			}
+			return $this->run_activation_check( $post, $type );
 		}
 
 		$error = WINP_Plugin::app()->get_execute_object()->getSnippetError( $post->ID );
 
 		if ( $error ) {
-			$message = is_array( $error ) && isset( $error['message'] ) ? wp_strip_all_tags( (string) $error['message'] ) : '';
-
-			return new WP_Error(
-				'woody_invalid_code',
-				trim( __( 'The snippet was not activated because its code contains an error.', 'insert-php' ) . ' ' . $message )
-			);
+			return $this->activation_error( is_array( $error ) && isset( $error['message'] ) ? (string) $error['message'] : '' );
 		}
 
 		return true;
+	}
+
+	/**
+	 * Run executable snippet code once before it is activated.
+	 *
+	 * Saving never runs the code, so this is the first run. The executor runs it, so a
+	 * fatal error is still attributed to the snippet and logged. Like the editor's
+	 * validation, errors, warnings raised by the snippet's own code and a false return
+	 * refuse the activation.
+	 *
+	 * @param WP_Post $post Snippet post.
+	 * @param string  $type Snippet type.
+	 *
+	 * @return true|WP_Error
+	 */
+	private function run_activation_check( WP_Post $post, string $type ) {
+		$code = $this->prepare_code( (string) WINP_Helper::get_snippet_code( $post ), $type );
+
+		// The executor skips empty code, '0' included, and reports it as a false return.
+		if ( empty( $code ) ) {
+			return true;
+		}
+
+		$redeclaration_error = WINP_Code_Validator::get_redeclaration_error( $code, $type );
+
+		// Redeclaring a function or class inside eval() ends the request, so detect it before running the snippet.
+		if ( null !== $redeclaration_error ) {
+			return $this->activation_error( $redeclaration_error->getMessage() );
+		}
+
+		$warnings     = [];
+		$result       = null;
+		$executed     = false;
+		$failure      = null;
+		$buffer_level = ob_get_level();
+		$previous     = self::get_error_handler();
+		$marker       = static function (): bool {
+			return false;
+		};
+
+		// The marker sits below the check's handler, so cleanup knows where to stop.
+		set_error_handler( $marker ); // phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_set_error_handler
+		set_error_handler( // phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_set_error_handler
+			static function ( int $errno, string $errstr, string $errfile, int $errline ) use ( &$warnings ): bool {
+				// Like the editor's save check, errors raised outside the snippet's own code go to PHP's standard handler.
+				if ( false === strpos( $errfile, "eval()'d code" ) ) {
+					return false;
+				}
+
+				// translators: %1$d is the line number, %2$s is the error message.
+				$warnings[] = sprintf( __( 'Line %1$d: %2$s', 'insert-php' ), $errline, $errstr );
+
+				return true;
+			}
+		);
+
+		try {
+			$result   = WINP_Plugin::app()->get_execute_object()->executeSnippet( $code, $post->ID );
+			$executed = true;
+
+			// Closing a buffer the snippet left open runs its callback, which can throw as well.
+			self::discard_output_buffers( $buffer_level );
+		} catch ( Throwable $e ) {
+			// The executor leaves the snippet context open when the code throws.
+			if ( ! $executed ) {
+				WINP_Error_Handler::clear_current_snippet();
+			}
+
+			$failure = $e;
+		} finally {
+			self::restore_error_handlers( $marker, $previous );
+		}
+
+		if ( null !== $failure ) {
+			self::discard_output_buffers( $buffer_level );
+
+			return $this->activation_error(
+				false !== strpos( $failure->getFile(), "eval()'d code" )
+					// translators: %1$d is the line number, %2$s is the error message.
+					? sprintf( __( 'Error on line %1$d: %2$s', 'insert-php' ), $failure->getLine(), $failure->getMessage() )
+					// translators: %s is the error message.
+					: sprintf( __( 'Error: %s', 'insert-php' ), $failure->getMessage() )
+			);
+		}
+
+		if ( ! empty( $warnings ) ) {
+			return $this->activation_error( implode( "\n", $warnings ) );
+		}
+
+		if ( false === $result ) {
+			return $this->activation_error( __( 'The code returned false.', 'insert-php' ) );
+		}
+
+		return true;
+	}
+
+	/**
+	 * Build the error returned when a snippet is not activated.
+	 *
+	 * @param string $message Error details.
+	 *
+	 * @return WP_Error
+	 */
+	private function activation_error( string $message ): WP_Error {
+		return new WP_Error(
+			'woody_invalid_code',
+			trim( __( 'The snippet was not activated because its code contains an error.', 'insert-php' ) . ' ' . wp_strip_all_tags( $message ) )
+		);
+	}
+
+	/**
+	 * Remove the check's handlers and any the snippet installed above them.
+	 *
+	 * PHP reads an empty handler stack and a null entry the same way, so the
+	 * check installs a marker below its own handler and cleanup stops there.
+	 *
+	 * @param Closure       $marker   Handler installed below the check's handler; it returns false.
+	 * @param callable|null $previous Handler that was active before the check. Not typed natively:
+	 *                                a private method another class registered is not callable here.
+	 * @phpstan-param Closure(): bool $marker
+	 *
+	 * @return void
+	 */
+	private static function restore_error_handlers( Closure $marker, $previous ): void {
+		$null_reads = 0;
+
+		// Only a long run of null reads, which an emptied stack gives forever, ends the loop before the marker.
+		while ( $null_reads < 100 ) {
+			$current = self::get_error_handler();
+
+			if ( $current === $marker ) {
+				restore_error_handler();
+				return;
+			}
+
+			// The snippet removed the marker as well.
+			if ( null !== $previous && $current === $previous ) {
+				return;
+			}
+
+			$null_reads = null === $current ? $null_reads + 1 : 0;
+			restore_error_handler();
+		}
+	}
+
+	/**
+	 * Read the active error handler without changing it.
+	 *
+	 * @return callable|null Not typed natively: a private method another class registered is not callable here.
+	 */
+	private static function get_error_handler() {
+		$current = set_error_handler( '__return_false' ); // phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_set_error_handler
+		restore_error_handler();
+
+		return $current;
+	}
+
+	/**
+	 * Close the output buffers opened above a level, stopping at one that cannot be removed.
+	 *
+	 * A snippet can open a buffer without the removable flag, which ob_end_clean() cannot close.
+	 * A callback on a buffer can throw when the buffer closes; the caller handles that.
+	 *
+	 * @param int $level Buffer level to return to.
+	 *
+	 * @return void
+	 */
+	private static function discard_output_buffers( int $level ): void {
+		while ( ob_get_level() > $level ) {
+			$buffer = ob_get_status();
+
+			if ( ! ( (int) ( $buffer['flags'] ?? 0 ) & PHP_OUTPUT_HANDLER_REMOVABLE ) ) {
+				return;
+			}
+
+			ob_end_clean();
+		}
 	}
 
 	/**
@@ -954,13 +1146,13 @@ class WINP_Abilities {
 	/**
 	 * Persist the snippet.
 	 *
-	 * @param array<string, mixed> $data       Validated snippet data.
-	 * @param WP_Post|null         $post       Existing snippet, null when creating.
-	 * @param bool                 $was_active Whether the snippet was active before the update.
+	 * @param array<string, mixed> $data        Validated snippet data.
+	 * @param WP_Post|null         $post        Existing snippet, null when creating.
+	 * @param bool                 $keep_active Whether an updated snippet stays active; new snippets are always inactive.
 	 *
 	 * @return int|WP_Error Snippet ID.
 	 */
-	private function save_snippet( $data, $post, $was_active ) {
+	private function save_snippet( $data, $post, $keep_active ) {
 		$postarr = [
 			'post_title'   => $data['title'],
 			'post_content' => $data['code'],
@@ -984,6 +1176,11 @@ class WINP_Abilities {
 
 		if ( $had_rel ) {
 			remove_filter( 'content_save_pre', 'wp_targeted_link_rel' );
+		}
+
+		// Switch the snippet off before its new code is stored, so no request in between runs that code.
+		if ( $post && ! $keep_active ) {
+			update_post_meta( $post->ID, 'wbcr_inp_snippet_activate', 0 );
 		}
 
 		$saved_id = $post ? wp_update_post( wp_slash( $postarr ), true ) : wp_insert_post( wp_slash( $postarr ), true );
@@ -1021,11 +1218,7 @@ class WINP_Abilities {
 			update_post_meta( $saved_id, 'wbcr_inp_snippet_priority', WINP_Helper::get_next_snippet_priority() );
 		}
 
-		// New snippets are always inactive. Like the editor, an update keeps an active
-		// snippet active only when the "activate by default" setting is on.
-		$keep_active = $post && $was_active && get_option( 'wbcr_inp_activate_by_default', true );
-
-		update_post_meta( $saved_id, 'wbcr_inp_snippet_activate', $keep_active ? 1 : 0 );
+		update_post_meta( $saved_id, 'wbcr_inp_snippet_activate', $post && $keep_active ? 1 : 0 );
 
 		return $saved_id;
 	}
@@ -1247,7 +1440,7 @@ class WINP_Abilities {
 				],
 				'dry_run'         => [
 					'type'        => 'boolean',
-					'description' => __( 'Validate only; nothing is saved. Validation of PHP and universal snippets evaluates the code once.', 'insert-php' ),
+					'description' => __( 'Check only; nothing is saved. The code is never run.', 'insert-php' ),
 					'default'     => false,
 				],
 			],

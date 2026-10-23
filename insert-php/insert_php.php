@@ -4,9 +4,10 @@
  * Plugin URI: https://woodysnippet.com/
  * Description: Executes PHP code, uses conditional logic to insert ads, text, media content and external service's code. Ensures no content duplication.
  * Author: Themeisle
- * Version: 2.7.9
+ * Version: 2.7.10
  * WordPress Available:  yes
  * Requires License:    no
+ * Requires PHP: 7.4
  * Text Domain: insert-php
  * Domain Path: /languages/
  * Author URI: https://themeisle.com
@@ -41,7 +42,7 @@ $wbcr_inp_safe_mode = false;
 // Set the constant that the plugin is activated.
 define( 'WINP_PLUGIN_ACTIVE', true );
 
-define( 'WINP_PLUGIN_VERSION', '2.7.9' );
+define( 'WINP_PLUGIN_VERSION', '2.7.10' );
 
 // Root directory of the plugin.
 define( 'WINP_PLUGIN_DIR', __DIR__ );

@@ -802,9 +802,9 @@ class WINP_Execute_Snippet {
 			}
 		}
 
-		if ( $snippet_type == WINP_SNIPPET_TYPE_UNIVERSAL ) {
-			$result = eval( '?>' . $code . '<?php ' );
-		} elseif ( $snippet_type == WINP_SNIPPET_TYPE_PHP ) {
+		if ( WINP_SNIPPET_TYPE_UNIVERSAL === $snippet_type ) {
+			$result = eval( WINP_Code_Validator::get_universal_eval_code( $code ) );
+		} elseif ( WINP_SNIPPET_TYPE_PHP === $snippet_type ) {
 			$result = eval( $code );
 		} else {
 			$result = ! empty( $code );
@@ -1234,7 +1234,7 @@ class WINP_Execute_Snippet {
 	 *
 	 * @param int $snippet_id
 	 *
-	 * @return array|bool
+	 * @return array{line:int,message:string}|array{type:int,message:string,file:string,line:int}|false
 	 */
 	public function getSnippetError( $snippet_id ) {
 		if ( ! intval( $snippet_id ) ) {
@@ -1249,6 +1249,15 @@ class WINP_Execute_Snippet {
 
 		$snippet_code = WINP_Helper::get_snippet_code( $snippet );
 		$snippet_code = $this->prepareCode( $snippet_code, $snippet_id );
+		$snippet_type = WINP_Helper::get_snippet_type( $snippet_id );
+
+		// Errors that end the request inside eval() are reported without running the code.
+		if ( in_array( $snippet_type, [ WINP_SNIPPET_TYPE_PHP, WINP_SNIPPET_TYPE_UNIVERSAL ], true ) ) {
+			$preflight_error = WINP_Code_Validator::find_preflight_error( (string) $snippet_code, $snippet_type );
+			if ( null !== $preflight_error ) {
+				return $preflight_error;
+			}
+		}
 
 		$result = $this->executeSnippet( $snippet_code, $snippet_id );
 

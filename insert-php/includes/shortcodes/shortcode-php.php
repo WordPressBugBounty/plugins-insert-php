@@ -70,9 +70,9 @@ class WINP_SnippetShortcodePhp extends WINP_SnippetShortcode {
 		// Set current snippet context for error handler.
 		WINP_Error_Handler::set_current_snippet( $id, $snippet->post_title, $snippet_content );
 
-		$redeclaration_output = $this->render_redeclaration_error( $snippet_content, WINP_SNIPPET_TYPE_PHP );
-		if ( null !== $redeclaration_output ) {
-			return $redeclaration_output;
+		$preflight_output = $this->render_preflight_error( $snippet_content, WINP_SNIPPET_TYPE_PHP );
+		if ( null !== $preflight_output ) {
+			return $preflight_output;
 		}
 
 		$buffer_level = ob_get_level();

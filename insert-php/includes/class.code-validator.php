@@ -16,9 +16,32 @@ if ( ! defined( 'ABSPATH' ) ) {
 class WINP_Code_Validator {
 
 	/**
+	 * Opening tag a universal snippet may start with to be evaluated from inside it.
+	 */
+	private const LEADING_OPEN_TAG = '/^<\?php\s/i';
+
+	/**
+	 * Build the code eval() runs for a universal snippet.
+	 *
+	 * Code that starts with an opening tag is evaluated from inside that tag rather
+	 * than after a closing one, so a leading strict_types declaration stays the
+	 * first statement. Output and line numbers are the same either way.
+	 *
+	 * @param string $snippet_code Snippet code.
+	 * @return string
+	 */
+	public static function get_universal_eval_code( string $snippet_code ): string {
+		if ( preg_match( self::LEADING_OPEN_TAG, $snippet_code ) ) {
+			return substr( $snippet_code, 5 ) . '<?php ';
+		}
+
+		return '?>' . $snippet_code . '<?php ';
+	}
+
+	/**
 	 * Validate executable snippet code by evaluating it once.
 	 *
-	 * Runs the redeclaration preflight and then evaluates the code with output
+	 * Runs the preflight checks and then evaluates the code with output
 	 * discarded, reporting syntax errors, warnings and uncaught errors. The code
 	 * is executed in the current request, exactly as the snippet editor does.
 	 *
@@ -34,11 +57,11 @@ class WINP_Code_Validator {
 			];
 		}
 
-		$redeclaration_error = self::get_redeclaration_error( $snippet_code, $snippet_type );
-		if ( null !== $redeclaration_error ) {
+		$preflight_error = self::get_preflight_error( $snippet_code, $snippet_type );
+		if ( null !== $preflight_error ) {
 			return [
 				'valid'   => false,
-				'message' => $redeclaration_error->getMessage(),
+				'message' => $preflight_error->getMessage(),
 			];
 		}
 
@@ -62,7 +85,7 @@ class WINP_Code_Validator {
 
 		try {
 			$result = WINP_SNIPPET_TYPE_UNIVERSAL === $snippet_type
-				? eval( '?> ' . $snippet_code . ' <?php ' )
+				? eval( self::get_universal_eval_code( $snippet_code ) )
 				: eval( $snippet_code );
 		} catch ( ParseError $e ) {
 			ob_end_clean();
@@ -149,6 +172,16 @@ class WINP_Code_Validator {
 			];
 		}
 
+		$strict_types_line = self::find_misplaced_strict_types( $snippet_code, $snippet_type );
+		if ( null !== $strict_types_line ) {
+			return [
+				'valid'   => false,
+				'checked' => true,
+				// translators: %1$d is the line number, %2$s is the error message.
+				'message' => sprintf( __( 'Syntax error on line %1$d: %2$s', 'insert-php' ), $strict_types_line, self::get_strict_types_message() ),
+			];
+		}
+
 		return [
 			'valid'   => true,
 			'checked' => true,
@@ -231,14 +264,117 @@ class WINP_Code_Validator {
 			return null;
 		}
 
+		return self::build_preflight_exception( $redeclaration['line'], self::get_redeclaration_message( $redeclaration ) );
+	}
+
+	/**
+	 * Build the error for any check that has to run before eval().
+	 *
+	 * Both a misplaced strict_types declaration and a redeclaration end the
+	 * request inside eval(), where they cannot be caught.
+	 *
+	 * @param string $snippet_code Snippet code.
+	 * @param string $snippet_type Snippet type.
+	 * @return ErrorException|null Error carrying the snippet line, or null when the code can be evaluated.
+	 */
+	public static function get_preflight_error( string $snippet_code, $snippet_type ): ?ErrorException {
+		$preflight_error = self::find_preflight_error( $snippet_code, $snippet_type );
+		if ( null === $preflight_error ) {
+			return null;
+		}
+
+		return self::build_preflight_exception( $preflight_error['line'], $preflight_error['message'] );
+	}
+
+	/**
+	 * Build the error a preflight check reports at a snippet line.
+	 *
+	 * @param int    $line    Snippet line.
+	 * @param string $message Error message.
+	 * @return ErrorException
+	 */
+	private static function build_preflight_exception( int $line, string $message ): ErrorException {
 		return new ErrorException(
 			// translators: %1$d is the line number, %2$s is the error message.
-			sprintf( __( 'Line %1$d: %2$s', 'insert-php' ), $redeclaration['line'], self::get_redeclaration_message( $redeclaration ) ),
+			sprintf( __( 'Line %1$d: %2$s', 'insert-php' ), $line, $message ),
 			0,
 			E_COMPILE_ERROR,
 			__FILE__,
-			$redeclaration['line']
+			$line
 		);
+	}
+
+	/**
+	 * Find the first problem get_preflight_error() reports.
+	 *
+	 * @param string $snippet_code Snippet code.
+	 * @param string $snippet_type Snippet type.
+	 * @return array{line:int,message:string}|null Snippet line and message, or null when the code can be evaluated.
+	 */
+	public static function find_preflight_error( string $snippet_code, $snippet_type ): ?array {
+		$strict_types_line = self::find_misplaced_strict_types( $snippet_code, $snippet_type );
+		if ( null !== $strict_types_line ) {
+			return [
+				'line'    => $strict_types_line,
+				'message' => self::get_strict_types_message(),
+			];
+		}
+
+		$redeclaration = self::find_redeclaration( $snippet_code, $snippet_type );
+		if ( null === $redeclaration ) {
+			return null;
+		}
+
+		return [
+			'line'    => $redeclaration['line'],
+			'message' => self::get_redeclaration_message( $redeclaration ),
+		];
+	}
+
+	/**
+	 * Find a strict_types declaration that eval() would reject.
+	 *
+	 * PHP only accepts strict_types as a statement of its own, before any statement
+	 * other than another declare(). A universal snippet may only start with the
+	 * opening tag get_universal_eval_code() evaluates from inside of.
+	 *
+	 * @param string $snippet_code Snippet code.
+	 * @param string $snippet_type Snippet type.
+	 * @return int|null Line of the declaration, or null when none is misplaced.
+	 */
+	public static function find_misplaced_strict_types( string $snippet_code, $snippet_type ): ?int {
+		if ( ! self::can_tokenize() ) {
+			return null;
+		}
+
+		$tokens          = token_get_all( self::get_source( $snippet_code, $snippet_type ) );
+		$first_statement = self::find_first_statement( $tokens );
+
+		foreach ( $tokens as $index => $token ) {
+			if ( ! is_array( $token ) || T_DECLARE !== $token[0] || self::is_name_reference( $tokens, $index ) ) {
+				continue;
+			}
+
+			$close = self::find_closing_parenthesis( $tokens, $index );
+			if ( null === $close || ! self::declares_strict_types( $tokens, $index, $close ) ) {
+				continue;
+			}
+
+			if ( $index > $first_statement || null === self::find_statement_end( $tokens, $close ) ) {
+				return (int) $token[2];
+			}
+		}
+
+		return null;
+	}
+
+	/**
+	 * Describe a strict_types declaration found by find_misplaced_strict_types().
+	 *
+	 * @return string
+	 */
+	private static function get_strict_types_message(): string {
+		return __( 'The strict_types declaration must be the very first statement in the snippet. Move declare(strict_types=1); to the top, directly after the opening PHP tag, and do not wrap code in a declare block.', 'insert-php' );
 	}
 
 	/**
@@ -482,6 +618,131 @@ class WINP_Code_Validator {
 	 * @return bool
 	 */
 	private static function opens_alternative_block( array $tokens, int $index ): bool {
+		$close = self::find_closing_parenthesis( $tokens, $index );
+
+		return null !== $close && self::is_followed_by( $tokens, $close, [ ':' ] );
+	}
+
+	/**
+	 * Find the index of the statement that starts after the opening tag and any declare() statements.
+	 *
+	 * @param array<int, array<int, int|string>|string> $tokens Token stream.
+	 * @return int Token index, or the token count when there is no such statement.
+	 */
+	private static function find_first_statement( array $tokens ): int {
+		$token_count = count( $tokens );
+
+		for ( $index = 0; $index < $token_count; ++$index ) {
+			if ( self::precedes_statements( $tokens, $index ) ) {
+				continue;
+			}
+
+			if ( ! is_array( $tokens[ $index ] ) || T_DECLARE !== $tokens[ $index ][0] ) {
+				return $index;
+			}
+
+			$close = self::find_closing_parenthesis( $tokens, $index );
+			$end   = null === $close ? null : self::find_statement_end( $tokens, $close );
+
+			if ( null === $end ) {
+				return $index;
+			}
+
+			$index = $end;
+		}
+
+		return $token_count;
+	}
+
+	/**
+	 * Check whether a token emits nothing and starts no statement.
+	 *
+	 * Whitespace, comments, the leading opening tag and a tag that reopens PHP
+	 * directly after a closing tag qualify.
+	 *
+	 * @param array<int, array<int, int|string>|string> $tokens Token stream.
+	 * @param int                                       $index  Token index.
+	 * @return bool
+	 */
+	private static function precedes_statements( array $tokens, int $index ): bool {
+		$token = $tokens[ $index ];
+
+		if ( self::is_insignificant( $token ) ) {
+			return true;
+		}
+
+		if ( 0 === $index ) {
+			return self::is_leading_open_tag( $token );
+		}
+
+		return is_array( $token ) && T_OPEN_TAG === $token[0] && self::is_close_tag( $tokens[ $index - 1 ] );
+	}
+
+	/**
+	 * Find the token that ends a declare() statement: a semicolon, a closing tag or the end of the code.
+	 *
+	 * @param array<int, array<int, int|string>|string> $tokens Token stream.
+	 * @param int                                       $close  Closing parenthesis index of the declare().
+	 * @return int|null Terminator index, the token count at the end of the code, or null when a body follows.
+	 */
+	private static function find_statement_end( array $tokens, int $close ): ?int {
+		$next = self::find_next_significant( $tokens, $close );
+		if ( null === $next ) {
+			return count( $tokens );
+		}
+
+		return ';' === $tokens[ $next ] || self::is_close_tag( $tokens[ $next ] ) ? $next : null;
+	}
+
+	/**
+	 * Check whether a token is a closing tag.
+	 *
+	 * @param array<int, int|string>|string $token Token.
+	 * @return bool
+	 */
+	private static function is_close_tag( $token ): bool {
+		return is_array( $token ) && T_CLOSE_TAG === $token[0];
+	}
+
+	/**
+	 * Check whether a token is the opening tag get_universal_eval_code() evaluates from inside of.
+	 *
+	 * @param array<int, int|string>|string $token Token.
+	 * @return bool
+	 */
+	private static function is_leading_open_tag( $token ): bool {
+		return is_array( $token ) && T_OPEN_TAG === $token[0] && 1 === preg_match( self::LEADING_OPEN_TAG, (string) $token[1] );
+	}
+
+	/**
+	 * Check whether a declare() between two token indexes sets strict_types.
+	 *
+	 * Only a directive name is followed by =, unlike a parameter type or named
+	 * argument in a method called declare.
+	 *
+	 * @param array<int, array<int, int|string>|string> $tokens Token stream.
+	 * @param int                                       $start  declare token index.
+	 * @param int                                       $end    Closing parenthesis index.
+	 * @return bool
+	 */
+	private static function declares_strict_types( array $tokens, int $start, int $end ): bool {
+		for ( $index = $start + 1; $index < $end; ++$index ) {
+			if ( is_array( $tokens[ $index ] ) && T_STRING === $tokens[ $index ][0] && 'strict_types' === strtolower( (string) $tokens[ $index ][1] ) && self::is_followed_by( $tokens, $index, [ '=' ] ) ) {
+				return true;
+			}
+		}
+
+		return false;
+	}
+
+	/**
+	 * Find the parenthesis that closes the group following a keyword, as in if ( ... ) or declare( ... ).
+	 *
+	 * @param array<int, array<int, int|string>|string> $tokens Token stream.
+	 * @param int                                       $index  Keyword token index.
+	 * @return int|null Closing parenthesis index, or null when no complete group follows the keyword.
+	 */
+	private static function find_closing_parenthesis( array $tokens, int $index ): ?int {
 		$token_count = count( $tokens );
 		$depth       = 0;
 
@@ -498,21 +759,48 @@ class WINP_Code_Validator {
 			}
 
 			if ( 0 === $depth ) {
-				return false;
+				return null;
 			}
 
 			if ( ')' === $token && 0 === --$depth ) {
-				for ( $next = $current + 1; $next < $token_count; ++$next ) {
-					if ( ! self::is_insignificant( $tokens[ $next ] ) ) {
-						return ':' === $tokens[ $next ];
-					}
-				}
-
-				return false;
+				return $current;
 			}
 		}
 
-		return false;
+		return null;
+	}
+
+	/**
+	 * Find the next token that is not whitespace or a comment.
+	 *
+	 * @param array<int, array<int, int|string>|string> $tokens Token stream.
+	 * @param int                                       $index  Token index to search after.
+	 * @return int|null Token index, or null at the end of the code.
+	 */
+	private static function find_next_significant( array $tokens, int $index ): ?int {
+		$token_count = count( $tokens );
+
+		for ( $next = $index + 1; $next < $token_count; ++$next ) {
+			if ( ! self::is_insignificant( $tokens[ $next ] ) ) {
+				return $next;
+			}
+		}
+
+		return null;
+	}
+
+	/**
+	 * Check whether the next significant token is one of the given characters.
+	 *
+	 * @param array<int, array<int, int|string>|string> $tokens     Token stream.
+	 * @param int                                       $index      Token index to search after.
+	 * @param array<int, string>                        $characters Single-character tokens to match.
+	 * @return bool
+	 */
+	private static function is_followed_by( array $tokens, int $index, array $characters ): bool {
+		$next = self::find_next_significant( $tokens, $index );
+
+		return null !== $next && in_array( $tokens[ $next ], $characters, true );
 	}
 
 	/**

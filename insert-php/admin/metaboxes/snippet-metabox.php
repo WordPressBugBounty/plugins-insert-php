@@ -1243,9 +1243,9 @@ class WINP_Snippet_MetaBox {
 			return true;
 		}
 
-		$redeclaration = WINP_Code_Validator::find_redeclaration( $snippet_code, $snippet_type );
-		if ( null !== $redeclaration ) {
-			$this->display_validation_error( $redeclaration['line'], WINP_Code_Validator::get_redeclaration_message( $redeclaration ) );
+		$preflight_error = WINP_Code_Validator::find_preflight_error( $snippet_code, $snippet_type );
+		if ( null !== $preflight_error ) {
+			$this->display_validation_error( $preflight_error['line'], $preflight_error['message'] );
 			return false;
 		}
 
@@ -1272,7 +1272,7 @@ class WINP_Snippet_MetaBox {
 		ob_start();
 
 		try {
-			$result = WINP_SNIPPET_TYPE_UNIVERSAL === $snippet_type ? eval( '?> ' . $snippet_code . ' <?php ' ) : eval( $snippet_code );
+			$result = WINP_SNIPPET_TYPE_UNIVERSAL === $snippet_type ? eval( WINP_Code_Validator::get_universal_eval_code( $snippet_code ) ) : eval( $snippet_code );
 
 			// elimination of errors 500 in eval() functions, with the directive display_errors = off;.
 			header( 'HTTP/1.0 200 OK' );

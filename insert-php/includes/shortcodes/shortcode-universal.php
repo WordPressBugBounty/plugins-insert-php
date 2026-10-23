@@ -70,12 +70,12 @@ class WINP_SnippetShortcodeUniversal extends WINP_SnippetShortcode {
 		// Set current snippet context for error handler.
 		WINP_Error_Handler::set_current_snippet( $id, $snippet->post_title, $snippet_content );
 
-		$redeclaration_output = $this->render_redeclaration_error( $snippet_content, WINP_SNIPPET_TYPE_UNIVERSAL );
-		if ( null !== $redeclaration_output ) {
-			return $redeclaration_output;
+		$preflight_output = $this->render_preflight_error( $snippet_content, WINP_SNIPPET_TYPE_UNIVERSAL );
+		if ( null !== $preflight_output ) {
+			return $preflight_output;
 		}
 
-		eval( '?>' . $snippet_content . '<?php ' );
+		eval( WINP_Code_Validator::get_universal_eval_code( $snippet_content ) );
 
 		// Clear snippet context after execution.
 		WINP_Error_Handler::clear_current_snippet();

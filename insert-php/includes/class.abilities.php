@@ -623,7 +623,7 @@ class WINP_Abilities {
 		$error = WINP_Plugin::app()->get_execute_object()->getSnippetError( $post->ID );
 
 		if ( $error ) {
-			return $this->activation_error( is_array( $error ) && isset( $error['message'] ) ? (string) $error['message'] : '' );
+			return $this->activation_error( $error['message'] );
 		}
 
 		return true;
@@ -650,11 +650,11 @@ class WINP_Abilities {
 			return true;
 		}
 
-		$redeclaration_error = WINP_Code_Validator::get_redeclaration_error( $code, $type );
+		$preflight_error = WINP_Code_Validator::get_preflight_error( $code, $type );
 
-		// Redeclaring a function or class inside eval() ends the request, so detect it before running the snippet.
-		if ( null !== $redeclaration_error ) {
-			return $this->activation_error( $redeclaration_error->getMessage() );
+		// Redeclaring a function or class, or misplacing strict_types, inside eval() ends the request, so detect it before running the snippet.
+		if ( null !== $preflight_error ) {
+			return $this->activation_error( $preflight_error->getMessage() );
 		}
 
 		$warnings     = [];

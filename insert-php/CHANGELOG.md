@@ -1,3 +1,9 @@
+#####   Version 2.7.10 (2026-10-23)
+
+- Fixed Universal snippets with strict_types declarations crashing pages
+- Set PHP 7.4 as the minimum version required
+- Updated dependencies
+
 #####   Version 2.7.9 (2026-10-05)
 
 - Fixed a fatal error when activating legacy Premium versions.

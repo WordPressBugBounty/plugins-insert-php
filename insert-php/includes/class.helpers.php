@@ -226,9 +226,9 @@ class WINP_Helper {
 	public static function doing_rest_api() {
 		$prefix     = rest_get_url_prefix();
 		$rest_route = WINP_HTTP::get( 'rest_route', null );
-		if ( defined( 'REST_REQUEST' ) && REST_REQUEST // (#1)
-			|| ! is_null( $rest_route ) // (#2)
-				&& strpos( trim( $rest_route, '\\/' ), $prefix, 0 ) === 0 ) {
+		if ( ( defined( 'REST_REQUEST' ) && REST_REQUEST ) // (#1)
+			|| ( is_string( $rest_route ) // (#2)
+				&& strpos( trim( $rest_route, '\\/' ), $prefix, 0 ) === 0 ) ) {
 			return true;
 		}
 

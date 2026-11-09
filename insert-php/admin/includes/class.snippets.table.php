@@ -316,8 +316,8 @@ class WINP_Snippet_Library_Table extends WP_List_Table {
 		$data       = [];
 		$saved_data = [];
 
-		$orderby = WINP_HTTP::request( 'orderby', 'datetime', true );
-		$order   = WINP_HTTP::request( 'order', 'desc', true );
+		$orderby = $this->get_request_orderby( 'datetime' );
+		$order   = $this->get_request_order( 'desc' );
 		$paged   = WINP_HTTP::request( 'paged', 1, 'intval' );
 
 		$order_tags = [
@@ -530,11 +530,37 @@ class WINP_Snippet_Library_Table extends WP_List_Table {
 			[
 				'total_items' => $total_items,
 				'per_page'    => $this->per_page,
-				'total_pages' => ceil( $total_items / $this->per_page ),
-				'orderby'     => WINP_HTTP::request( 'orderby', 'title', true ),
-				'order'       => WINP_HTTP::request( 'order', 'asc', true ),
+				'total_pages' => (int) ceil( $total_items / $this->per_page ),
+				'orderby'     => $this->get_request_orderby( 'title' ),
+				'order'       => $this->get_request_order( 'asc' ),
 			] 
 		);
+	}
+
+	/**
+	 * Get the requested sort column, limited to the sortable columns.
+	 *
+	 * @param string $fallback Column used when the request has no sortable one.
+	 *
+	 * @return string
+	 */
+	private function get_request_orderby( string $fallback ): string {
+		$orderby = WINP_HTTP::request( 'orderby', $fallback, true );
+
+		return is_string( $orderby ) && array_key_exists( $orderby, $this->get_sortable_columns() ) ? $orderby : $fallback;
+	}
+
+	/**
+	 * Get the requested sort direction.
+	 *
+	 * @param 'asc'|'desc' $fallback Direction used when the request has no valid one.
+	 *
+	 * @return 'asc'|'desc'
+	 */
+	private function get_request_order( string $fallback ): string {
+		$order = WINP_HTTP::request( 'order', $fallback, true );
+
+		return in_array( $order, [ 'asc', 'desc' ], true ) ? $order : $fallback;
 	}
 
 	/**
@@ -555,8 +581,8 @@ class WINP_Snippet_Library_Table extends WP_List_Table {
 		/**
 		 * Adds field order and orderby
 		 */
-		echo '<input type="hidden" id="order" name="order" value="' . $this->_pagination_args['order'] . '" />';
-		echo '<input type="hidden" id="orderby" name="orderby" value="' . $this->_pagination_args['orderby'] . '" />';
+		echo '<input type="hidden" id="order" name="order" value="' . esc_attr( $this->_pagination_args['order'] ) . '" />';
+		echo '<input type="hidden" id="orderby" name="orderby" value="' . esc_attr( $this->_pagination_args['orderby'] ) . '" />';
 		parent::display();
 		
 		// Add premium upsell modal.

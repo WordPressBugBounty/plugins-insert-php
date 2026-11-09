@@ -88,7 +88,7 @@ class WINP_Settings {
 				'settings'      => self::get_settings(),
 				'links'         => [
 					'upgrade'           => tsdk_utmify( WINP_UPGRADE, 'settings_page', 'upgrade_link' ),
-					'docs'              => WINP_DOCS,
+					'docs'              => tsdk_utmify( WINP_DOCS, 'documentation', 'settings' ),
 					'support'           => WINP_SUPPORT,
 					'orgSupport'        => WINP_ORG_SUPPORT,
 					'websiteDesign'     => tsdk_utmify( 'https://themeisle.com/wordpress-website-design/', 'expert_help_card_woody_snippets', 'website_design' ),

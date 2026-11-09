@@ -4,7 +4,7 @@
  * Plugin URI: https://woodysnippet.com/
  * Description: Executes PHP code, uses conditional logic to insert ads, text, media content and external service's code. Ensures no content duplication.
  * Author: Themeisle
- * Version: 2.7.10
+ * Version: 2.7.11
  * WordPress Available:  yes
  * Requires License:    no
  * Requires PHP: 7.4
@@ -42,7 +42,7 @@ $wbcr_inp_safe_mode = false;
 // Set the constant that the plugin is activated.
 define( 'WINP_PLUGIN_ACTIVE', true );
 
-define( 'WINP_PLUGIN_VERSION', '2.7.10' );
+define( 'WINP_PLUGIN_VERSION', '2.7.11' );
 
 // Root directory of the plugin.
 define( 'WINP_PLUGIN_DIR', __DIR__ );
@@ -77,7 +77,7 @@ define( 'WINP_SNIPPET_TYPE_AD', 'advert' );
 
 // We need to update these.
 define( 'WINP_UPGRADE', 'https://woodysnippet.com/upgrade' );
-define( 'WINP_DOCS', 'https://docs.themeisle.com/category/2429-woody-installation-and-setup' );
+define( 'WINP_DOCS', 'https://docs.themeisle.com/woody-code-snippets/' );
 define( 'WINP_ORG_SUPPORT', 'https://wordpress.org/support/plugin/insert-php/' );
 define( 'WINP_SUPPORT', 'https://themeisle.com/contact/' );
 
@@ -243,7 +243,9 @@ function winp_sdk_about_page() {
 		'location'         => 'edit.php?post_type=wbcr-snippets',
 		'logo'             => WINP_PLUGIN_URL . '/admin/assets/img/icon-256x256.png',
 		'review_link'      => false,
-		'has_upgrade_menu' => false,
+		'has_upgrade_menu' => 'valid' !== apply_filters( 'product_woody_license_status', 'invalid' ),
+		'upgrade_text'     => __( 'Upgrade to Pro', 'insert-php' ),
+		'upgrade_link'     => tsdk_utmify( WINP_UPGRADE, 'sidebarMenuUpgrade', 'woody' ),
 	];
 }
 

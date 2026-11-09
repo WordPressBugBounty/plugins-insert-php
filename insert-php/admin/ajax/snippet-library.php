@@ -22,9 +22,9 @@ function wbcr_inp_ajax_get_snippet_library() {
 	?>
 	<div class="wrap">
 		<form id="winp-snippet-library-list" method="get">
-			<input type="hidden" name="page" value="<?php echo WINP_HTTP::request( 'page', 1, true ); ?>"/>
-			<input type="hidden" name="order" value="<?php echo WINP_HTTP::request( 'order', 'asc', true ); ?>"/>
-			<input type="hidden" name="orderby" value="<?php echo WINP_HTTP::request( 'orderby', 'title', true ); ?>"/>
+			<input type="hidden" name="page" value="<?php echo esc_attr( WINP_HTTP::request( 'page', 1, true ) ); ?>"/>
+			<input type="hidden" name="order" value="<?php echo esc_attr( WINP_HTTP::request( 'order', 'asc', true ) ); ?>"/>
+			<input type="hidden" name="orderby" value="<?php echo esc_attr( WINP_HTTP::request( 'orderby', 'title', true ) ); ?>"/>
 			<div id="winp-snippet-library-table" style="">
 				<p><?php _e( 'Loading snippets...', 'insert-php' ); ?></p>
 				<?php

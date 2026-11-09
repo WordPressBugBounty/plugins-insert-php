@@ -1,3 +1,9 @@
+#####   Version 2.7.11 (2026-11-09)
+
+- Fixed site crash when URL contains array-style parameters
+- Enhanced security
+- Updated dependencies
+
 #####   Version 2.7.10 (2026-10-23)
 
 - Fixed Universal snippets with strict_types declarations crashing pages

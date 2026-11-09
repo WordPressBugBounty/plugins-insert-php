@@ -384,7 +384,7 @@ if ( ! class_exists( 'WINP_Plugin' ) ) {
 			$pro_product_slug = defined( 'WASP_PLUGIN_FILE' ) ? basename( dirname( WASP_PLUGIN_FILE ) ) : '';
 
 			$is_pro     = 'valid' === $status;
-			$is_expired = 'expired' === $status || 'active-expired' === $status;
+			$is_expired = in_array( $status, [ 'expired', 'active_expired', 'active-expired' ], true );
 
 			if ( $is_pro ) {
 				// translators: %s is the discount percentage.
@@ -394,6 +394,8 @@ if ( ! class_exists( 'WINP_Plugin' ) ) {
 				$cta_label = __( 'See your options', 'insert-php' );
 			} elseif ( $is_expired ) {
 				// translators: %s is the discount percentage.
+				$config['upgrade_menu_text'] = sprintf( __( 'BF Sale - %s off', 'insert-php' ), '50%' );
+				// translators: %s is the discount percentage.
 				$config['plugin_meta_message'] = sprintf( __( 'Black Friday Sale - %s off', 'insert-php' ), '50%' );
 				$message                       = __( 'Your Woody Pro features are still here, just locked. Renew at a reduced rate this week.', 'insert-php' );
 				$cta_label                     = __( 'Reactivate now', 'insert-php' );
@@ -402,6 +404,8 @@ if ( ! class_exists( 'WINP_Plugin' ) ) {
 				$config['title'] = sprintf( __( 'Woody Pro: %s off this week', 'insert-php' ), '60%' );
 				// translators: %s is the discount percentage.
 				$config['plugin_meta_message'] = sprintf( __( 'Black Friday Sale - %s off', 'insert-php' ), '60%' );
+				// translators: %s is the discount percentage.
+				$config['upgrade_menu_text'] = sprintf( __( 'BF Sale - %s off', 'insert-php' ), '60%' );
 			}
 
 			$url_params = [

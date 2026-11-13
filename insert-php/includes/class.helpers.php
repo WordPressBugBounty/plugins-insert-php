@@ -53,6 +53,74 @@ class WINP_Helper {
 	}
 
 	/**
+	 * Get the edit URL that reports a snippet's code error after a failed save or activation.
+	 *
+	 * @param int $post_id Snippet ID.
+	 * @return string
+	 */
+	public static function get_snippet_error_url( $post_id ) {
+		return add_query_arg(
+			[
+				'action'                       => 'edit',
+				'post'                         => $post_id,
+				'wbcr_inp_save_snippet_result' => 'code-error',
+				'_wpnonce'                     => wp_create_nonce( 'winp_snippet_error_' . $post_id ),
+			],
+			admin_url( 'post.php' )
+		);
+	}
+
+	/**
+	 * Verify a request to report a snippet's code error, which runs the snippet to find the error.
+	 *
+	 * @param int $post_id Snippet ID.
+	 * @return bool
+	 */
+	public static function verify_snippet_error_request( $post_id ) {
+		if ( ! current_user_can( 'manage_options' ) ) {
+			return false;
+		}
+
+		$nonce = WINP_HTTP::get( '_wpnonce', '', true );
+
+		return is_string( $nonce ) && (bool) wp_verify_nonce( $nonce, 'winp_snippet_error_' . $post_id );
+	}
+
+	/**
+	 * Get the URL used to toggle safe mode.
+	 *
+	 * @param bool $enable Whether the URL should enable safe mode.
+	 * @return string
+	 */
+	public static function get_safe_mode_url( $enable = true ) {
+		$query_arg = $enable ? 'wbcr-php-snippets-safe-mode' : 'wbcr-php-snippets-disable-safe-mode';
+		$action    = $enable ? 'winp_enable_safe_mode' : 'winp_disable_safe_mode';
+
+		return add_query_arg(
+			'_wpnonce',
+			wp_create_nonce( $action ),
+			admin_url( 'edit.php?post_type=' . WINP_SNIPPETS_POST_TYPE . '&' . $query_arg . '=1' )
+		);
+	}
+
+	/**
+	 * Verify a request to toggle safe mode.
+	 *
+	 * @param bool $enable Whether the request should enable safe mode.
+	 * @return bool
+	 */
+	public static function verify_safe_mode_request( $enable = true ) {
+		if ( ! current_user_can( 'manage_options' ) ) {
+			return false;
+		}
+
+		$nonce  = WINP_HTTP::get( '_wpnonce', '', true );
+		$action = $enable ? 'winp_enable_safe_mode' : 'winp_disable_safe_mode';
+
+		return is_string( $nonce ) && (bool) wp_verify_nonce( $nonce, $action );
+	}
+
+	/**
 	 * Enables safe mode, in which the php code will not be executed.
 	 */
 	public static function enable_safe_mode() {

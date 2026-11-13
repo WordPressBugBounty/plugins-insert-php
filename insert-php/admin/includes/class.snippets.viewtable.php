@@ -282,16 +282,7 @@ class WINP_SnippetsViewTable {
 				 */
 				if ( ( 'evrywhere' == $snippet_scope || 'auto' == $snippet_scope ) && $snippet_type != WINP_SNIPPET_TYPE_TEXT && $snippet_type != WINP_SNIPPET_TYPE_AD && $snippet_type != WINP_SNIPPET_TYPE_CSS && $snippet_type != WINP_SNIPPET_TYPE_JS && ! $is_activate ) {
 					if ( WINP_Plugin::app()->get_execute_object()->getSnippetError( $post_id ) ) {
-						wp_safe_redirect(
-							add_query_arg(
-								[
-									'action' => 'edit',
-									'post'   => $post_id,
-									'wbcr_inp_save_snippet_result' => 'code-error',
-								],
-								admin_url( 'post.php' ) 
-							) 
-						);
+						wp_safe_redirect( WINP_Helper::get_snippet_error_url( $post_id ) );
 						exit;
 					}
 				}

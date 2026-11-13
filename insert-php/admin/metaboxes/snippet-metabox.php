@@ -1213,16 +1213,7 @@ class WINP_Snippet_MetaBox {
 				define( 'WP_SANDBOX_SCRAPING', true );
 			}
 			/* Display message if a parse error occurred */
-			wp_safe_redirect(
-				add_query_arg(
-					[
-						'action'                       => 'edit',
-						'post'                         => $post_id,
-						'wbcr_inp_save_snippet_result' => 'code-error',
-					],
-					admin_url( 'post.php' ) 
-				) 
-			);
+			wp_safe_redirect( WINP_Helper::get_snippet_error_url( $post_id ) );
 
 			exit;
 		}

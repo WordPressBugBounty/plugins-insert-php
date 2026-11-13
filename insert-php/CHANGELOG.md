@@ -1,3 +1,7 @@
+#####   Version 2.7.12 (2026-11-13)
+
+- Enhanced security
+
 #####   Version 2.7.11 (2026-11-09)
 
 - Fixed site crash when URL contains array-style parameters

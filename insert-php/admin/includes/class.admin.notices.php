@@ -159,7 +159,7 @@ class WINP_Admin_Notices {
 		if ( ! empty( $save_snippet_result ) && 'code-error' == $save_snippet_result ) {
 			$post_id = ! empty( $post_id ) ? intval( $post_id ) : null;
 
-			if ( $post_id ) {
+			if ( $post_id && WINP_Helper::verify_snippet_error_request( $post_id ) ) {
 				$error = WINP_Plugin::app()->get_execute_object()->getSnippetError( $post_id );
 
 				if ( is_array( $error ) ) {
@@ -182,7 +182,7 @@ class WINP_Admin_Notices {
 			return null;
 		}
 
-		$disable_safe_mode_url = esc_url( add_query_arg( [ 'wbcr-php-snippets-disable-safe-mode' => 1 ] ) );
+		$disable_safe_mode_url = esc_url( WINP_Helper::get_safe_mode_url( false ) );
 
 		$notice  = __( 'Woody Code Snippets', 'insert-php' ) . ': ' . __( 'Safe Mode is active. All snippets are temporarily disabled. You can re-enable them after fixing any issues.', 'insert-php' );
 		$notice .= ' <a href="' . $disable_safe_mode_url . '" class="button button-default">' . __( 'Disable Safe Mode', 'insert-php' ) . '</a>';

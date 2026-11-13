@@ -4,7 +4,7 @@ Tags: code snippets, php, insert php, header footer, custom css
 Requires at least: 5.6
 Tested up to: 7.1
 Requires PHP: 7.4
-Stable tag: 2.7.11
+Stable tag: 2.7.12
 License: GPLv2 or later
 License URI: http://www.gnu.org/licenses/gpl-2.0.html
 
@@ -224,9 +224,9 @@ The attribute “simple” is available in the snippet as the $simple variable. 
 
 Don’t worry. Mistakes can happen, even with experienced users. Woody includes a Safe Mode that temporarily disables snippet execution so you can fix the issue.
 
-1. Go to the safe mode by this link: http://your-site-name.dev/wp-admin/?wbcr-php-snippets-safe-mode
+1. While signed in as an administrator, use the **Enable Safe Mode** button shown on the error page;
 2. Edit the snippet in which you made a mistake;
-3. Leave safe mode by clicking the link: http://your-site-name.dev/wp-admin/?wbcr-php-snippets-disable-safe-mode
+3. Leave safe mode from the Woody menu in the admin bar.
 
 Great, now you should not have any issues!
 
@@ -280,6 +280,13 @@ The plugin doesn’t support multi-sites setup.
 7. Use custom shortcode names for reusing snippets
 
 == Changelog ==
+
+#####   Version 2.7.12 (2026-11-13)
+
+- Enhanced security
+
+
+
 
 #####   Version 2.7.11 (2026-11-09)
 

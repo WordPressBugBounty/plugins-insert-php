@@ -4,7 +4,7 @@
  * Plugin URI: https://woodysnippet.com/
  * Description: Executes PHP code, uses conditional logic to insert ads, text, media content and external service's code. Ensures no content duplication.
  * Author: Themeisle
- * Version: 2.7.11
+ * Version: 2.7.12
  * WordPress Available:  yes
  * Requires License:    no
  * Requires PHP: 7.4
@@ -42,7 +42,7 @@ $wbcr_inp_safe_mode = false;
 // Set the constant that the plugin is activated.
 define( 'WINP_PLUGIN_ACTIVE', true );
 
-define( 'WINP_PLUGIN_VERSION', '2.7.11' );
+define( 'WINP_PLUGIN_VERSION', '2.7.12' );
 
 // Root directory of the plugin.
 define( 'WINP_PLUGIN_DIR', __DIR__ );
@@ -192,9 +192,13 @@ if ( file_exists( WINP_PLUGIN_DIR . '/vendor/autoload.php' ) ) {
 add_filter(
 	'wp_php_error_message',
 	function ( $message ) {
-		$safe_mode_url     = admin_url( 'edit.php?post_type=' . WINP_SNIPPETS_POST_TYPE . '&wbcr-php-snippets-safe-mode' );
+		if ( ! function_exists( 'wp_create_nonce' ) ) {
+			return $message;
+		}
+
+		$safe_mode_url     = WINP_Helper::get_safe_mode_url();
 		$safe_mode_button  = '<div style="margin:20px 0;padding:20px; background:#ffe8e8;">' . __( 'If you see this message after saving the snippet to the Woody Code Snippets plugin, please enable safe mode in the Woody plugin. Safe mode will allow you to continue working in the admin panel of your site and change the snippet in which you made a php error.', 'insert-php' ) . '</div>';
-		$safe_mode_button .= '<a href="' . $safe_mode_url . '" class="button">' . __( 'Enable Safe Mode', 'insert-php' ) . '</a>';
+		$safe_mode_button .= '<a href="' . esc_url( $safe_mode_url ) . '" class="button">' . __( 'Enable Safe Mode', 'insert-php' ) . '</a>';
 
 		return $message . $safe_mode_button;
 	}
@@ -206,15 +210,15 @@ add_filter(
 add_action(
 	'plugins_loaded',
 	function () {
-		if ( isset( $_GET['wbcr-php-snippets-safe-mode'] ) ) {
+		if ( WINP_HTTP::get( 'wbcr-php-snippets-safe-mode', false, true ) && WINP_Helper::verify_safe_mode_request() ) {
 			WINP_Helper::enable_safe_mode();
-			wp_safe_redirect( esc_url( remove_query_arg( [ 'wbcr-php-snippets-safe-mode' ] ) ) );
+			wp_safe_redirect( esc_url( remove_query_arg( [ 'wbcr-php-snippets-safe-mode', '_wpnonce' ] ) ) );
 			die();
 		}
 
-		if ( isset( $_GET['wbcr-php-snippets-disable-safe-mode'] ) ) {
+		if ( WINP_HTTP::get( 'wbcr-php-snippets-disable-safe-mode', false, true ) && WINP_Helper::verify_safe_mode_request( false ) ) {
 			WINP_Helper::disable_safe_mode();
-			wp_safe_redirect( esc_url( remove_query_arg( [ 'wbcr-php-snippets-disable-safe-mode' ] ) ) );
+			wp_safe_redirect( esc_url( remove_query_arg( [ 'wbcr-php-snippets-disable-safe-mode', '_wpnonce' ] ) ) );
 			die();
 		}
 	},

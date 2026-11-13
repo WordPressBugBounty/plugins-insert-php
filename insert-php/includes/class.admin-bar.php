@@ -486,7 +486,7 @@ class WINP_Admin_Bar {
 
 		// Add disable safe mode button or view all link.
 		if ( $is_safe_mode ) {
-			$disable_url = admin_url( 'edit.php?post_type=wbcr-snippets&wbcr-php-snippets-disable-safe-mode=1' );
+			$disable_url = WINP_Helper::get_safe_mode_url( false );
 			$wp_admin_bar->add_node(
 				[
 					'parent' => 'woody-snippets',
